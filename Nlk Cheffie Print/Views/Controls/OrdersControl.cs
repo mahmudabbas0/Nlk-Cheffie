@@ -42,6 +42,26 @@ namespace Nlk_Cheffie_Print.Views.Controls
             ThemeManager.ApplyTheme(this);
             TranslateUI();
             MainForm.OrderListChanged += OnOrderListChanged;
+
+            // Connect FlatScrollBar to DataGridView
+            dgvOrders.Scroll += (s, ev) =>
+            {
+                if (ev.ScrollOrientation == ScrollOrientation.VerticalScroll)
+                {
+                    flatScrollBar.Value = ev.NewValue;
+                }
+            };
+
+            flatScrollBar.Scroll += (s, ev) =>
+            {
+                if (flatScrollBar.Value >= 0 && flatScrollBar.Value < dgvOrders.RowCount)
+                {
+                    dgvOrders.FirstDisplayedScrollingRowIndex = flatScrollBar.Value;
+                }
+            };
+
+            dgvOrders.SizeChanged += (s, ev) => UpdateGridScrollBar();
+
             _ = LoadOrders(1);
         }
 
@@ -60,7 +80,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
             dgvOrders.Columns.Clear();
             dgvOrders.AutoGenerateColumns = false;
             dgvOrders.DataError  += (s, ev) => ev.ThrowException = false;
-            dgvOrders.ScrollBars  = ScrollBars.Vertical; // Only vertical scrollbar is needed since everything fills proportionally
+            dgvOrders.ScrollBars  = ScrollBars.None;
 
             dgvOrders.Columns.Add(new DataGridViewTextBoxColumn
             {
@@ -184,7 +204,34 @@ namespace Nlk_Cheffie_Print.Views.Controls
             dgvOrders.DataSource = page;
             dgvOrders.ResumeLayout();
 
+            UpdateGridScrollBar();
             UpdatePaginationUI();
+        }
+
+        private void UpdateGridScrollBar()
+        {
+            if (this.IsDisposed) return;
+            try
+            {
+                if (this.InvokeRequired)
+                {
+                    this.Invoke(new Action(UpdateGridScrollBar));
+                    return;
+                }
+                int visibleRows = dgvOrders.DisplayedRowCount(false);
+                if (dgvOrders.RowCount > visibleRows)
+                {
+                    flatScrollBar.Maximum = dgvOrders.RowCount - 1;
+                    flatScrollBar.LargeChange = visibleRows;
+                    flatScrollBar.Value = dgvOrders.FirstDisplayedScrollingRowIndex;
+                    flatScrollBar.Visible = true;
+                }
+                else
+                {
+                    flatScrollBar.Visible = false;
+                }
+            }
+            catch { }
         }
 
         private void btnPrevPage_Click(object sender, EventArgs e)

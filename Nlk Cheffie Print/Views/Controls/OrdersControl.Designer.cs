@@ -30,9 +30,10 @@ namespace Nlk_Cheffie_Print.Views.Controls
         {
             this.pnlHeader     = new System.Windows.Forms.Panel();
             this.lblStatus     = new System.Windows.Forms.Label();
-            this.dtpDate       = new System.Windows.Forms.DateTimePicker();
+            this.dtpDate       = new Nlk_Cheffie_Print.Core.FlatDateTimePicker();
             this.lblTitle      = new System.Windows.Forms.Label();
             this.dgvOrders     = new System.Windows.Forms.DataGridView();
+            this.flatScrollBar = new Nlk_Cheffie_Print.Core.FlatScrollBar();
             this.pnlActions    = new System.Windows.Forms.Panel();
             this.btnRefresh    = new System.Windows.Forms.Button();
             this.btnCancel     = new System.Windows.Forms.Button();
@@ -195,11 +196,19 @@ namespace Nlk_Cheffie_Print.Views.Controls
             this.btnApprove.UseVisualStyleBackColor = true;
             this.btnApprove.Click += new System.EventHandler(this.btnApprove_Click);
             // 
+            // 
+            // flatScrollBar
+            // 
+            this.flatScrollBar.Width = 8;
+            this.flatScrollBar.Dock = System.Windows.Forms.DockStyle.Right;
+            this.flatScrollBar.Visible = false;
+            // 
             // OrdersControl
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.dgvOrders);
+            this.Controls.Add(this.flatScrollBar);
             this.Controls.Add(this.pnlPagination);
             this.Controls.Add(this.pnlActions);
             this.Controls.Add(this.pnlHeader);
@@ -218,9 +227,10 @@ namespace Nlk_Cheffie_Print.Views.Controls
 
         private System.Windows.Forms.Panel     pnlHeader;
         private System.Windows.Forms.Label     lblTitle;
-        private System.Windows.Forms.DateTimePicker dtpDate;
+        private Nlk_Cheffie_Print.Core.FlatDateTimePicker dtpDate;
         private System.Windows.Forms.Label     lblStatus;
         private System.Windows.Forms.DataGridView dgvOrders;
+        private Nlk_Cheffie_Print.Core.FlatScrollBar flatScrollBar;
         private System.Windows.Forms.Panel     pnlPagination;
         private System.Windows.Forms.Button    btnPrevPage;
         private System.Windows.Forms.Label     lblPageInfo;

@@ -13,7 +13,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
     {
         private string _activeTemplateId = "kitchen";
         private Dictionary<string, SlipTemplate> _templates = new Dictionary<string, SlipTemplate>();
-        private ListBox? _activeListBox;
+        private FlatListBox? _activeListBox;
 
         public DesignerControl()
         {
@@ -40,6 +40,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
             // Remove designer anchors to allow manual horizontal centering
             pnlReceiptRoll.Anchor = AnchorStyles.None;
 
+            pnlMiddleCanvas.AutoScroll = true;
             // Handle resizing events to keep receipt centered and eliminate ghosting trails
             pnlMiddleCanvas.Resize += (s, ev) =>
             {
@@ -52,6 +53,11 @@ namespace Nlk_Cheffie_Print.Views.Controls
             LoadDefaultTemplates();
             LoadTemplate(_activeTemplateId);
             TranslateUI();
+
+            // Hook up Drag and Drop reordering events
+            lstHeader.ItemReordered += (oldIdx, newIdx) => ReorderElement("header", oldIdx, newIdx);
+            lstBody.ItemReordered += (oldIdx, newIdx) => ReorderElement("body", oldIdx, newIdx);
+            lstFooter.ItemReordered += (oldIdx, newIdx) => ReorderElement("footer", oldIdx, newIdx);
 
             // Run initial centering
             CenterReceiptRoll();
@@ -90,7 +96,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
 
             // Refresh text descriptions in lists
             RefreshActiveTemplateLists();
-            pnlReceiptRoll.Invalidate();
+            CenterReceiptRoll();
         }
 
         private void SetupTemplateSelector()
@@ -173,16 +179,17 @@ namespace Nlk_Cheffie_Print.Views.Controls
             PopulateSectionList(lstBody, template.Body);
             PopulateSectionList(lstFooter, template.Footer);
 
-            pnlReceiptRoll.Invalidate();
+            CenterReceiptRoll();
         }
 
-        private void PopulateSectionList(ListBox listBox, List<TemplateElement> list)
+        private void PopulateSectionList(FlatListBox listBox, List<TemplateElement> list)
         {
             listBox.Items.Clear();
             foreach (var el in list)
             {
                 listBox.Items.Add(GetElementLabel(el));
             }
+            listBox.RefreshItemsLayout();
         }
 
         private string GetElementLabel(TemplateElement el)
@@ -338,7 +345,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
 
         private int DrawElementPreview(Graphics g, TemplateElement el, int paperWidth, int yOffset, Font fnNormal, Font fnBold, Font fnHeader, Brush brush)
         {
-            if (yOffset > pnlReceiptRoll.Height - 30) return yOffset;
+            if (yOffset > pnlReceiptRoll.Height + 50) return yOffset;
 
             int margin = 16;
             int usableWidth = paperWidth - (margin * 2);
@@ -534,7 +541,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
                         else if (section == "footer") template.Footer.Add(el);
 
                         RefreshActiveTemplateLists();
-                        pnlReceiptRoll.Invalidate();
+                        CenterReceiptRoll();
                     }
                 }
             }
@@ -569,7 +576,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
                 {
                     // Values already modified inside dialog directly
                     RefreshActiveTemplateLists();
-                    pnlReceiptRoll.Invalidate();
+                    CenterReceiptRoll();
                 }
             }
         }
@@ -595,7 +602,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
                 else if (_activeListBox == lstFooter) template.Footer.RemoveAt(index);
 
                 RefreshActiveTemplateLists();
-                pnlReceiptRoll.Invalidate();
+                CenterReceiptRoll();
             }
         }
 
@@ -637,10 +644,101 @@ namespace Nlk_Cheffie_Print.Views.Controls
             const int paperWidth = 300; // Fixed realistic width for 80mm receipt paper roll preview
             pnlReceiptRoll.SuspendLayout();
             pnlReceiptRoll.Width = paperWidth;
-            pnlReceiptRoll.Left = (pnlMiddleCanvas.Width - paperWidth) / 2;
+            pnlReceiptRoll.Left = Math.Max(10, (pnlMiddleCanvas.ClientSize.Width - paperWidth) / 2);
             pnlReceiptRoll.Top = 45;
-            pnlReceiptRoll.Height = Math.Max(100, pnlMiddleCanvas.Height - 75); // stays top/bottom padded
+            pnlReceiptRoll.Height = CalculateReceiptHeight();
             pnlReceiptRoll.ResumeLayout();
+            pnlReceiptRoll.Invalidate(); // Force immediate redraw of template elements
+        }
+
+        private int CalculateReceiptHeight()
+        {
+            if (!_templates.TryGetValue(_activeTemplateId, out var template)) return 150;
+
+            int yOffset = 30; // initial top padding
+
+            using (Graphics g = this.CreateGraphics())
+            using (Font fnNormal = new Font("Courier New", 8, FontStyle.Regular))
+            using (Font fnBold = new Font("Courier New", 8, FontStyle.Bold))
+            using (Font fnHeader = new Font("Courier New", 10, FontStyle.Bold))
+            {
+                var allElements = new List<TemplateElement>();
+                allElements.AddRange(template.Header);
+                allElements.AddRange(template.Body);
+                allElements.AddRange(template.Footer);
+
+                foreach (var el in allElements)
+                {
+                    if (el.Type == "separator")
+                    {
+                        yOffset += 12;
+                    }
+                    else if (el.Type == "qrcode")
+                    {
+                        yOffset += 78;
+                    }
+                    else if (el.Type == "barcode")
+                    {
+                        yOffset += 42;
+                    }
+                    else if (el.Type == "logo")
+                    {
+                        yOffset += 42;
+                    }
+                    else if (el.Type == "items")
+                    {
+                        yOffset += 68;
+                    }
+                    else
+                    {
+                        string text = el.Content;
+                        text = text.Replace("{restoran_adi}", ConfigManager.Current.App.RestaurantName)
+                                   .Replace("{restoran_adres}", ConfigManager.Current.App.RestaurantAddress)
+                                   .Replace("{restoran_phone}", ConfigManager.Current.App.RestaurantPhone)
+                                   .Replace("{table_name}", "Table Garden-1")
+                                   .Replace("{order_no}", "S-001")
+                                   .Replace("{date}", DateTime.Now.ToString("dd.MM.yyyy"))
+                                   .Replace("{time}", DateTime.Now.ToString("HH:mm"))
+                                   .Replace("{subtotal}", "100.00 TL")
+                                   .Replace("{tax_total}", "10.00 TL")
+                                   .Replace("{grand_total}", "110.00 TL")
+                                   .Replace("{payment_type}", "Cash");
+
+                        if (text.Contains("{receipt."))
+                        {
+                            string innerKey = text.Trim('{', '}');
+                            text = LocalizationService.T(innerKey, text);
+                        }
+
+                        Font fnUse = el.Font == "B" ? fnBold : fnNormal;
+                        if (el.Size == "2x") fnUse = fnHeader;
+
+                        SizeF size = g.MeasureString(text, fnUse);
+                        yOffset += (int)size.Height + 2;
+                    }
+                }
+            }
+
+            return yOffset + 30; // 30px bottom padding
+        }
+
+        private void ReorderElement(string section, int oldIdx, int newIdx)
+        {
+            var template = _templates[_activeTemplateId];
+            List<TemplateElement>? list = null;
+            if (section == "header") list = template.Header;
+            else if (section == "body") list = template.Body;
+            else if (section == "footer") list = template.Footer;
+
+            if (list != null && oldIdx >= 0 && oldIdx < list.Count && newIdx >= 0 && newIdx < list.Count)
+            {
+                var el = list[oldIdx];
+                list.RemoveAt(oldIdx);
+                list.Insert(newIdx, el);
+
+                // Refresh layout and preview
+                CenterReceiptRoll();
+            }
         }
     }
 }

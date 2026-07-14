@@ -91,6 +91,7 @@ namespace Nlk_Cheffie_Print.Views
             this.btnBrowserLogin.Name = "btnBrowserLogin";
             this.btnBrowserLogin.Size = new System.Drawing.Size(400, 45);
             this.btnBrowserLogin.TabIndex = 2;
+            this.btnBrowserLogin.Tag = "Success";
             this.btnBrowserLogin.Text = "Login with Browser";
             this.btnBrowserLogin.UseVisualStyleBackColor = false;
             this.btnBrowserLogin.Click += new System.EventHandler(this.btnBrowserLogin_Click);

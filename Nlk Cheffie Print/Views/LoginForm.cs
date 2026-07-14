@@ -39,6 +39,8 @@ namespace Nlk_Cheffie_Print.Views
             TranslateUI();
         }
 
+        private bool _isTokenFocused = false;
+
         private void ApplyTheme()
         {
             ThemeManager.ApplyTheme(this);
@@ -50,6 +52,31 @@ namespace Nlk_Cheffie_Print.Views
             lblStatus.BackColor = Color.FromArgb(30, ThemeManager.ColorDanger);
             lblStatus.ForeColor = ThemeManager.ColorDanger;
             
+            // Draw custom card border
+            pnlCard.Paint += (s, ev) =>
+            {
+                var g = ev.Graphics;
+                var rect = pnlCard.ClientRectangle;
+                using (var pen = new Pen(ThemeManager.ColorBorder, 1))
+                {
+                    g.DrawRectangle(pen, 0, 0, rect.Width - 1, rect.Height - 1);
+                }
+            };
+
+            // Custom border glow for token field
+            txtToken.Enter += (s, ev) => { _isTokenFocused = true; pnlTokenWrapper.Invalidate(); };
+            txtToken.Leave += (s, ev) => { _isTokenFocused = false; pnlTokenWrapper.Invalidate(); };
+            pnlTokenWrapper.Paint += (s, ev) =>
+            {
+                var g = ev.Graphics;
+                var rect = pnlTokenWrapper.ClientRectangle;
+                Color borderCol = _isTokenFocused ? ThemeManager.ColorAccent : ThemeManager.ColorBorder;
+                using (var pen = new Pen(borderCol, 1.5f))
+                {
+                    g.DrawRectangle(pen, 0, 0, rect.Width - 1, rect.Height - 1);
+                }
+            };
+
             // Center the card panel on the form
             pnlCard.Location = new Point(
                 (this.ClientSize.Width - pnlCard.Width) / 2,

@@ -1,0 +1,20 @@
+# .gitignore for C# / .NET project
+
+# Build outputs
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio files
+.vs/
+*.user
+*.suo
+*.userprefs
+*.docstates
+
+# IDE files (VS Code / JetBrains)
+.idea/
+.vscode/
+
+# Local config containing secrets/tokens
+config.json
+**/config.json

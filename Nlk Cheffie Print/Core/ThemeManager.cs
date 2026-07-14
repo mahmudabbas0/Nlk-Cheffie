@@ -121,24 +121,40 @@ namespace Nlk_Cheffie_Print.Core
                     button.BackColor = ColorAccent;
                     button.ForeColor = Color.Black;
                     button.FlatAppearance.BorderColor = ColorAccent;
+                    button.FlatAppearance.MouseOverBackColor = ColorAccentHover;
+                    button.FlatAppearance.MouseDownBackColor = ColorAccentPressed;
+                }
+                else if (button.Tag?.ToString() == "Success")
+                {
+                    button.BackColor = ColorSuccess;
+                    button.ForeColor = Color.White;
+                    button.FlatAppearance.BorderColor = ColorSuccess;
+                    button.FlatAppearance.MouseOverBackColor = Color.FromArgb(90, 190, 94);
+                    button.FlatAppearance.MouseDownBackColor = Color.FromArgb(60, 150, 64);
                 }
                 else if (button.Tag?.ToString() == "Danger")
                 {
                     button.BackColor = Color.FromArgb(40, ColorDanger);
                     button.ForeColor = ColorDanger;
                     button.FlatAppearance.BorderColor = Color.FromArgb(80, ColorDanger);
+                    button.FlatAppearance.MouseOverBackColor = Color.FromArgb(60, ColorDanger);
+                    button.FlatAppearance.MouseDownBackColor = Color.FromArgb(30, ColorDanger);
                 }
                 else if (button.Tag?.ToString() == "Secondary")
                 {
                     button.BackColor = ColorCard;
                     button.ForeColor = ColorText;
                     button.FlatAppearance.BorderColor = ColorBorder;
+                    button.FlatAppearance.MouseOverBackColor = Color.FromArgb(32, 32, 35);
+                    button.FlatAppearance.MouseDownBackColor = Color.FromArgb(18, 18, 20);
                 }
                 else
                 {
                     button.BackColor = ColorFieldBg;
                     button.ForeColor = ColorText;
                     button.FlatAppearance.BorderColor = ColorBorder;
+                    button.FlatAppearance.MouseOverBackColor = Color.FromArgb(38, 38, 41);
+                    button.FlatAppearance.MouseDownBackColor = Color.FromArgb(20, 20, 22);
                 }
             }
             else if (control is TextBox textBox)
@@ -153,7 +169,10 @@ namespace Nlk_Cheffie_Print.Core
                 comboBox.BackColor = ColorFieldBg;
                 comboBox.ForeColor = ColorText;
                 comboBox.Font = FontBody;
-                comboBox.FlatStyle = FlatStyle.Flat;
+                if (comboBox is not FlatComboBox)
+                {
+                    comboBox.FlatStyle = FlatStyle.Flat;
+                }
             }
             else if (control is DateTimePicker dateTimePicker)
             {
@@ -167,6 +186,12 @@ namespace Nlk_Cheffie_Print.Core
                 listBox.ForeColor = ColorText;
                 listBox.Font = FontBody;
                 listBox.BorderStyle = BorderStyle.None;
+            }
+            else if (control is FlatListBox flatListBox)
+            {
+                flatListBox.BackColor = ColorFieldBg;
+                flatListBox.ForeColor = ColorText;
+                flatListBox.Font = FontBody;
             }
             else if (control is DataGridView dataGridView)
             {

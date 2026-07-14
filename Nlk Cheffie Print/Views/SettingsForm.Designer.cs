@@ -29,9 +29,9 @@ namespace Nlk_Cheffie_Print.Views
         private void InitializeComponent()
         {
             this.pnlGeneralCard = new System.Windows.Forms.Panel();
-            this.cmbLanguage = new System.Windows.Forms.ComboBox();
+            this.cmbLanguage = new Nlk_Cheffie_Print.Core.FlatComboBox();
             this.lblLanguage = new System.Windows.Forms.Label();
-            this.cmbAutoPrintRole = new System.Windows.Forms.ComboBox();
+            this.cmbAutoPrintRole = new Nlk_Cheffie_Print.Core.FlatComboBox();
             this.lblAutoPrintRole = new System.Windows.Forms.Label();
             this.chkAutoPrint = new System.Windows.Forms.CheckBox();
             this.chkGraphicMode = new System.Windows.Forms.CheckBox();
@@ -307,9 +307,9 @@ namespace Nlk_Cheffie_Print.Views
         private System.Windows.Forms.CheckBox chkGraphicMode;
         private System.Windows.Forms.CheckBox chkAutoPrint;
         private System.Windows.Forms.Label lblAutoPrintRole;
-        private System.Windows.Forms.ComboBox cmbAutoPrintRole;
+        private Nlk_Cheffie_Print.Core.FlatComboBox cmbAutoPrintRole;
         private System.Windows.Forms.Label lblLanguage;
-        private System.Windows.Forms.ComboBox cmbLanguage;
+        private Nlk_Cheffie_Print.Core.FlatComboBox cmbLanguage;
         private System.Windows.Forms.Panel pnlConnectionCard;
         private System.Windows.Forms.Label lblConnectionTitle;
         private System.Windows.Forms.Label lblServerUrl;

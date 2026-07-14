@@ -42,11 +42,11 @@ namespace Nlk_Cheffie_Print.Views.Controls
             this.btnTestCourier = new System.Windows.Forms.Button();
             this.btnTestCashier = new System.Windows.Forms.Button();
             this.btnTestKitchen = new System.Windows.Forms.Button();
-            this.cmbCourier = new System.Windows.Forms.ComboBox();
+            this.cmbCourier = new Nlk_Cheffie_Print.Core.FlatComboBox();
             this.lblRoleCourier = new System.Windows.Forms.Label();
-            this.cmbCashier = new System.Windows.Forms.ComboBox();
+            this.cmbCashier = new Nlk_Cheffie_Print.Core.FlatComboBox();
             this.lblRoleCashier = new System.Windows.Forms.Label();
-            this.cmbKitchen = new System.Windows.Forms.ComboBox();
+            this.cmbKitchen = new Nlk_Cheffie_Print.Core.FlatComboBox();
             this.lblRoleKitchen = new System.Windows.Forms.Label();
             this.lblRolesTitle = new System.Windows.Forms.Label();
             this.pnlHeader.SuspendLayout();
@@ -326,10 +326,10 @@ namespace Nlk_Cheffie_Print.Views.Controls
         private System.Windows.Forms.Panel pnlRolesCard;
         private System.Windows.Forms.Label lblRolesTitle;
         private System.Windows.Forms.Label lblRoleKitchen;
-        private System.Windows.Forms.ComboBox cmbKitchen;
-        private System.Windows.Forms.ComboBox cmbCourier;
+        private Nlk_Cheffie_Print.Core.FlatComboBox cmbKitchen;
+        private Nlk_Cheffie_Print.Core.FlatComboBox cmbCourier;
         private System.Windows.Forms.Label lblRoleCourier;
-        private System.Windows.Forms.ComboBox cmbCashier;
+        private Nlk_Cheffie_Print.Core.FlatComboBox cmbCashier;
         private System.Windows.Forms.Label lblRoleCashier;
         private System.Windows.Forms.Button btnSaveRoles;
         private System.Windows.Forms.Button btnTestCourier;
