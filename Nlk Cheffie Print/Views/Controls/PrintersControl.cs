@@ -1,8 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Printing;
+using System.Linq;
+using System.Text.Json;
 using System.Windows.Forms;
 using Nlk_Cheffie_Print.Core;
+using Nlk_Cheffie_Print.Core.Workers;
 using Nlk_Cheffie_Print.Models;
 
 namespace Nlk_Cheffie_Print.Views.Controls
@@ -51,25 +55,76 @@ namespace Nlk_Cheffie_Print.Views.Controls
 
         private void LoadPrintersFromConfig()
         {
-            lstPrinters.Items.Clear();
-            
+            RefreshInstalledPrinters(showResult: false);
+        }
+
+        private void RefreshInstalledPrinters(bool showResult)
+        {
             var printers = ConfigManager.Current.Printers.Available;
-            if (printers.Count == 0)
+            var previousRoleIds = new Dictionary<string, string>
             {
-                // Add some default mock printers if none loaded
-                printers.Add(new PrinterInfo { Name = "XP-80C (Thermal/RAW)", Type = "usb", Id = "USB001" });
-                printers.Add(new PrinterInfo { Name = "POS-58 (Thermal/RAW)", Type = "usb", Id = "USB002" });
-                printers.Add(new PrinterInfo { Name = "Epson TM-T88VI", Type = "network", Id = "192.168.1.200", Port = 9100 });
-                ConfigManager.Save();
+                ["kitchen"] = ConfigManager.Current.Printers.Kitchen,
+                ["cashier"] = ConfigManager.Current.Printers.Cashier,
+                ["courier"] = ConfigManager.Current.Printers.Courier
+            };
+
+            var networkPrinters = printers
+                .Where(p => p.Type.Equals("network", StringComparison.OrdinalIgnoreCase) || p.Type.Equals("ip", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            var windowsPrinters = PrinterSettings.InstalledPrinters
+                .Cast<string>()
+                .OrderBy(name => name, StringComparer.CurrentCultureIgnoreCase)
+                .Select(name => new PrinterInfo
+                {
+                    Name = name,
+                    Id = name,
+                    Type = "win32"
+                })
+                .ToList();
+
+            var migratedRoleIds = new Dictionary<string, string>();
+            foreach (var role in previousRoleIds)
+            {
+                string selectedId = role.Value;
+                var previous = printers.FirstOrDefault(p => p.Id == selectedId);
+                string previousName = previous?.Name ?? string.Empty;
+                string normalizedName = previousName.Replace(" (Thermal/RAW)", string.Empty, StringComparison.OrdinalIgnoreCase);
+
+                var installed = windowsPrinters.FirstOrDefault(p =>
+                    p.Name.Equals(previousName, StringComparison.OrdinalIgnoreCase) ||
+                    p.Name.Equals(normalizedName, StringComparison.OrdinalIgnoreCase));
+
+                migratedRoleIds[role.Key] = installed?.Id ?? selectedId;
             }
 
-            foreach (var p in printers)
+            printers.Clear();
+            printers.AddRange(windowsPrinters);
+            printers.AddRange(networkPrinters.Where(network => !printers.Any(p => p.Id.Equals(network.Id, StringComparison.OrdinalIgnoreCase))));
+
+            ConfigManager.Current.Printers.Kitchen = migratedRoleIds["kitchen"];
+            ConfigManager.Current.Printers.Cashier = migratedRoleIds["cashier"];
+            ConfigManager.Current.Printers.Courier = migratedRoleIds["courier"];
+            ConfigManager.Save();
+
+            lstPrinters.Items.Clear();
+            foreach (var printer in printers)
             {
-                string display = $"{p.Name} [{p.Id}]";
-                lstPrinters.Items.Add(display);
+                lstPrinters.Items.Add(printer.Type.Equals("win32", StringComparison.OrdinalIgnoreCase)
+                    ? printer.Name
+                    : $"{printer.Name} [{printer.Id}]");
             }
 
             RefreshPrinterCombos();
+
+            if (showResult)
+            {
+                MessageBox.Show(
+                    LocalizationService.T("printers.scan_found").Replace("{count}", windowsPrinters.Count.ToString()),
+                    LocalizationService.T("printers.scan_completed"),
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
         }
 
         private void RefreshPrinterCombos()
@@ -129,34 +184,15 @@ namespace Nlk_Cheffie_Print.Views.Controls
         {
             btnScanUsb.Enabled = false;
             btnScanUsb.Text = LocalizationService.T("printers.scanning");
-
-            // Mock timer to simulate scanning
-            System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer { Interval = 1000 };
-            timer.Tick += (s, ev) =>
+            try
             {
-                timer.Stop();
-                timer.Dispose();
-
-                // Add scanned printer
-                string scannedId = $"USB00{ConfigManager.Current.Printers.Available.Count + 1}";
-                var newPrinter = new PrinterInfo { Name = $"New Thermal Printer ({scannedId})", Type = "usb", Id = scannedId };
-                ConfigManager.Current.Printers.Available.Add(newPrinter);
-                ConfigManager.Save();
-
-                lstPrinters.Items.Add($"{newPrinter.Name} [{newPrinter.Id}]");
-                RefreshPrinterCombos();
-
+                RefreshInstalledPrinters(showResult: true);
+            }
+            finally
+            {
                 btnScanUsb.Enabled = true;
                 btnScanUsb.Text = LocalizationService.T("printers.scan_usb");
-
-                MessageBox.Show(
-                    LocalizationService.T("printers.scan_found").Replace("{count}", "1"),
-                    LocalizationService.T("printers.scan_completed"),
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information
-                );
-            };
-            timer.Start();
+            }
         }
 
         private void btnAddIp_Click(object sender, EventArgs e)
@@ -267,6 +303,32 @@ namespace Nlk_Cheffie_Print.Views.Controls
                 );
                 return;
             }
+
+            switch (role)
+            {
+                case "kitchen":
+                    ConfigManager.Current.Printers.Kitchen = selectedId;
+                    break;
+                case "cashier":
+                    ConfigManager.Current.Printers.Cashier = selectedId;
+                    break;
+                case "courier":
+                    ConfigManager.Current.Printers.Courier = selectedId;
+                    break;
+            }
+
+            ConfigManager.Save();
+
+            string testSlip = $"{{\"restaurant_info\":{{\"name\":{JsonSerializer.Serialize(ConfigManager.Current.App.RestaurantName)},\"address\":{JsonSerializer.Serialize(ConfigManager.Current.App.RestaurantAddress)},\"phone\":{JsonSerializer.Serialize(ConfigManager.Current.App.RestaurantPhone)}}},\"order_info\":{{\"order_number\":\"TEST-001\",\"table_name\":\"Test Masa\",\"date\":\"{DateTime.Now:dd.MM.yyyy}\",\"time\":\"{DateTime.Now:HH:mm}\",\"payment_method\":\"Nakit\"}},\"payment_info\":{{\"subtotal\":\"100.00\",\"tax\":\"10.00\",\"total\":\"110.00\"}},\"items\":[{{\"quantity\":1,\"name\":\"Test Ürünü\",\"line_total\":\"100.00\"}}]}}";
+            using var document = JsonDocument.Parse(testSlip);
+            PrintQueueWorker.Enqueue(new PrintJob
+            {
+                Role = role,
+                Data = document.RootElement.Clone(),
+                JobId = $"test-{role}-{Guid.NewGuid():N}",
+                ForcePrint = true,
+                SkipOrderLog = true
+            });
 
             MessageBox.Show(
                 LocalizationService.T("qrm.dialogs.print_queued").Replace("{role}", role.ToUpper()),

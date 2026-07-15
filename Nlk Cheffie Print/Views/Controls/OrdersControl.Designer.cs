@@ -100,7 +100,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
             this.dgvOrders.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dgvOrders.Location = new System.Drawing.Point(0, 50);
             this.dgvOrders.Name = "dgvOrders";
-            this.dgvOrders.RowTemplate.Height = 35;
+            this.dgvOrders.RowTemplate.Height = 48;
             this.dgvOrders.Size = new System.Drawing.Size(800, 340);
             this.dgvOrders.TabIndex = 1;
             this.dgvOrders.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dgvOrders_CellContentClick);

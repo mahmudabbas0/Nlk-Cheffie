@@ -15,7 +15,7 @@ namespace Nlk_Cheffie_Print.Core
         public bool DryRun { get; set; } = true;
 
         [JsonPropertyName("graphic_mode")]
-        public bool GraphicMode { get; set; } = true;
+        public bool GraphicMode { get; set; } = false;
 
         [JsonPropertyName("auto_print_enabled")]
         public bool AutoPrintEnabled { get; set; } = false;

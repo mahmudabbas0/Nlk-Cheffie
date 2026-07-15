@@ -239,7 +239,7 @@
       "error_data_not_found": "Item data not found.",
       "error_open_edit": "Could not open edit screen. Please try again.",
       "logo_browse_title": "Select Logo",
-      "logo_browse_filter": "Image Files (*.png *.jpg *.jpeg *.bmp)",
+      "logo_browse_filter": "Image Files (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp|All Files (*.*)|*.*",
       "new_text_default": "New Text"
     },
     "items": {

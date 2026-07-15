@@ -58,7 +58,6 @@ namespace Nlk_Cheffie_Print.Views.Controls
             // pnlLeftSidebar
             // 
             this.pnlLeftSidebar.Controls.Add(this.btnSaveDesign);
-            this.pnlLeftSidebar.Controls.Add(this.btnResetTemplate);
             this.pnlLeftSidebar.Controls.Add(this.btnAddFooter);
             this.pnlLeftSidebar.Controls.Add(this.lstFooter);
             this.pnlLeftSidebar.Controls.Add(this.lblFooterSection);
@@ -90,11 +89,9 @@ namespace Nlk_Cheffie_Print.Views.Controls
             // 
             // btnResetTemplate
             // 
-            this.btnResetTemplate.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnResetTemplate.Location = new System.Drawing.Point(15, 485);
+            this.btnResetTemplate.Location = new System.Drawing.Point(15, 220);
             this.btnResetTemplate.Name = "btnResetTemplate";
-            this.btnResetTemplate.Size = new System.Drawing.Size(230, 32);
+            this.btnResetTemplate.Size = new System.Drawing.Size(190, 32);
             this.btnResetTemplate.TabIndex = 10;
             this.btnResetTemplate.Tag = "Danger";
             this.btnResetTemplate.Text = "Varsayılana Döndür";
@@ -211,6 +208,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
             // 
             // pnlRightSidebar
             // 
+            this.pnlRightSidebar.Controls.Add(this.btnResetTemplate);
             this.pnlRightSidebar.Controls.Add(this.btnDeleteItem);
             this.pnlRightSidebar.Controls.Add(this.btnEditItem);
             this.pnlRightSidebar.Controls.Add(this.lblItemActions);

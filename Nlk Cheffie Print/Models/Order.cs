@@ -33,6 +33,9 @@ namespace Nlk_Cheffie_Print.Models
         public string CustomerEmail { get; set; } = "";
         public string DeliveryAddress { get; set; } = "";
         public string OrderNote { get; set; } = "";
+        public string Subtotal { get; set; } = "0.00";
+        public string Tax { get; set; } = "0.00";
+        public string ExtrasTotal { get; set; } = "0.00";
         public List<OrderItem> Items { get; set; } = new List<OrderItem>();
     }
 }

@@ -241,7 +241,7 @@
       "error_data_not_found": "Öğe verisi bulunamadı.",
       "error_open_edit": "Düzenleme ekranı açılamadı. Lütfen tekrar deneyin.",
       "logo_browse_title": "Logo Seç",
-      "logo_browse_filter": "Resim Dosyaları (*.png *.jpg *.jpeg *.bmp)",
+      "logo_browse_filter": "Resim Dosyaları (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp|Tüm Dosyalar (*.*)|*.*",
       "new_text_default": "Yeni metin"
     },
     "items": {

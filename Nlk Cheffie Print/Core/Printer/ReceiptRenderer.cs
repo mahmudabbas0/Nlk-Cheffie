@@ -139,16 +139,12 @@ namespace Nlk_Cheffie_Print.Core.Printer
                     WriteTextEscPos(writer, line + "\n", "left", "A", "1x");
 
                     // Customizations
-                    if (el.ShowCustomizations && item.TryGetProperty("customizations", out var custProp))
+                    if (el.ShowCustomizations)
                     {
-                        if (custProp.TryGetProperty("added", out var addProp) && addProp.ValueKind == JsonValueKind.Array)
+                        var extras = ParseItemExtras(item);
+                        if (extras.Count > 0)
                         {
-                            var extras = new List<string>();
-                            foreach (var ex in addProp.EnumerateArray()) extras.Add(ex.GetString() ?? "");
-                            if (extras.Count > 0)
-                            {
-                                WriteTextEscPos(writer, $" - Extra: {string.Join(", ", extras)}\n", "left", "A", "1x");
-                            }
+                            WriteTextEscPos(writer, $" - Extra: {string.Join(", ", extras)}\n", "left", "A", "1x");
                         }
                     }
 
@@ -227,7 +223,7 @@ namespace Nlk_Cheffie_Print.Core.Printer
                     foreach (var item in itemsProp.EnumerateArray())
                     {
                         yOffset += 18; // main item row
-                        if (el.ShowCustomizations && item.TryGetProperty("customizations", out var cust) && cust.TryGetProperty("added", out var add) && add.ValueKind == JsonValueKind.Array && add.GetArrayLength() > 0)
+                        if (el.ShowCustomizations && ParseItemExtras(item).Count > 0)
                             yOffset += 16;
                         if (el.ShowNotes && item.TryGetProperty("notes", out var notes) && !string.IsNullOrEmpty(notes.GetString()))
                             yOffset += 16;
@@ -357,17 +353,13 @@ namespace Nlk_Cheffie_Print.Core.Printer
                         yOffset += 18;
 
                         // Customizations
-                        if (el.ShowCustomizations && item.TryGetProperty("customizations", out var custProp))
+                        if (el.ShowCustomizations)
                         {
-                            if (custProp.TryGetProperty("added", out var addProp) && addProp.ValueKind == JsonValueKind.Array)
+                            var extras = ParseItemExtras(item);
+                            if (extras.Count > 0)
                             {
-                                var extras = new List<string>();
-                                foreach (var ex in addProp.EnumerateArray()) extras.Add(ex.GetString() ?? "");
-                                if (extras.Count > 0)
-                                {
-                                    g.DrawString($" - Extra: {string.Join(", ", extras)}", fnNormal, Brushes.Gray, margin + 15, yOffset);
-                                    yOffset += 16;
-                                }
+                                g.DrawString($" - Extra: {string.Join(", ", extras)}", fnNormal, Brushes.Gray, margin + 15, yOffset);
+                                yOffset += 16;
                             }
                         }
 
@@ -463,7 +455,7 @@ namespace Nlk_Cheffie_Print.Core.Printer
             return fallback;
         }
 
-        private static string Substitute(string content, Dictionary<string, string> ctx)
+        public static string Substitute(string content, Dictionary<string, string> ctx)
         {
             if (string.IsNullOrEmpty(content)) return "";
             string output = content;
@@ -500,6 +492,202 @@ namespace Nlk_Cheffie_Print.Core.Printer
 
             // 6. Line feed to prevent overlapping with next text
             writer.Write(new byte[] { 0x0A });
+        }
+
+        private static List<string> ParseItemExtras(JsonElement item)
+        {
+            var extras = new List<string>();
+
+            // 1. Try Laravel "extras" array relation
+            if (item.TryGetProperty("extras", out var extrasEl) && extrasEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var ex in extrasEl.EnumerateArray())
+                {
+                    string exName = GetJsonStr(ex, "name");
+                    if (string.IsNullOrEmpty(exName)) exName = GetJsonStr(ex, "option_name");
+
+                    string exPrice = GetJsonStr(ex, "price");
+                    if (double.TryParse(exPrice, out double exPriceVal) && exPriceVal > 0)
+                    {
+                        exName += $" (+{exPriceVal:0.00} TL)";
+                    }
+                    if (!string.IsNullOrEmpty(exName) && !extras.Contains(exName))
+                    {
+                        extras.Add(exName);
+                    }
+                }
+            }
+
+            // 2. Try standard customizations
+            if (item.TryGetProperty("customizations", out var custProp))
+            {
+                if (custProp.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var c in custProp.EnumerateArray())
+                    {
+                        string cName = c.ValueKind == JsonValueKind.String ? c.GetString() ?? "" : GetJsonStr(c, "name");
+                        if (c.ValueKind == JsonValueKind.Object)
+                        {
+                            string cPrice = GetJsonStr(c, "price");
+                            if (double.TryParse(cPrice, out double cPriceVal) && cPriceVal > 0)
+                            {
+                                cName += $" (+{cPriceVal:0.00} TL)";
+                            }
+                        }
+                        if (!string.IsNullOrEmpty(cName) && !extras.Contains(cName))
+                        {
+                            extras.Add(cName);
+                        }
+                    }
+                }
+                else if (custProp.ValueKind == JsonValueKind.Object && custProp.TryGetProperty("added", out var addProp) && addProp.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var ex in addProp.EnumerateArray())
+                    {
+                        string cName = ex.ValueKind == JsonValueKind.String ? ex.GetString() ?? "" : GetJsonStr(ex, "name");
+                        if (ex.ValueKind == JsonValueKind.Object)
+                        {
+                            string cPrice = GetJsonStr(ex, "price");
+                            if (double.TryParse(cPrice, out double cPriceVal) && cPriceVal > 0)
+                            {
+                                cName += $" (+{cPriceVal:0.00} TL)";
+                            }
+                        }
+                        if (!string.IsNullOrEmpty(cName) && !extras.Contains(cName))
+                        {
+                            extras.Add(cName);
+                        }
+                    }
+                }
+            }
+
+            return extras;
+        }
+
+        private static string GetJsonStr(JsonElement el, string propName)
+        {
+            if (el.ValueKind == JsonValueKind.Object && el.TryGetProperty(propName, out var prop))
+            {
+                if (prop.ValueKind == JsonValueKind.String) return prop.GetString() ?? "";
+                if (prop.ValueKind == JsonValueKind.Number) return prop.GetRawText();
+                if (prop.ValueKind == JsonValueKind.True) return "true";
+                if (prop.ValueKind == JsonValueKind.False) return "false";
+            }
+            return "";
+        }
+
+        public static Dictionary<string, string> GetMockContext()
+        {
+            return BuildContext(GetMockOrderData());
+        }
+
+        public static JsonElement GetMockOrderData()
+        {
+            var mockObj = new
+            {
+                restaurant_info = new
+                {
+                    name = string.IsNullOrWhiteSpace(ConfigManager.Current.App.RestaurantName) ? "Cheffie Restaurant" : ConfigManager.Current.App.RestaurantName,
+                    address = string.IsNullOrWhiteSpace(ConfigManager.Current.App.RestaurantAddress) ? "Atatürk Mah. No:123, İzmir" : ConfigManager.Current.App.RestaurantAddress,
+                    phone = string.IsNullOrWhiteSpace(ConfigManager.Current.App.RestaurantPhone) ? "+90 232 555 1234" : ConfigManager.Current.App.RestaurantPhone,
+                    tax_id = "9876543210",
+                    wifi_ssid = "Cheffie_Guest",
+                    wifi_password = "cheffiekey123"
+                },
+                order_info = new
+                {
+                    order_number = "ORD-12345",
+                    table_name = "Masa 5",
+                    waiter_name = "Ahmet",
+                    date = DateTime.Now.ToString("dd.MM.yyyy"),
+                    time = DateTime.Now.ToString("HH:mm"),
+                    customer_name = "Cengiz Kağan",
+                    customer_phone = "+90 555 444 3322",
+                    delivery_address = "Cumhuriyet Cad. Hürriyet Apt. No:12 D:4, Alsancak",
+                    payment_method = "Kredi Kartı",
+                    order_note = "Soslar bol olsun lütfen, temassız teslimat."
+                },
+                payment_info = new
+                {
+                    subtotal = "210.00",
+                    extras_total = "30.00",
+                    tax = "24.00",
+                    total = "240.00"
+                },
+                items = new[]
+                {
+                    new
+                    {
+                        quantity = 1,
+                        name = "Özel Soslu Hamburger",
+                        line_total = "140.00",
+                        price = 140.00,
+                        customizations = new { added = new[] { "Ekstra Peynir", "Karamelize Soğan" } },
+                        notes = "Köfte orta pişmiş olsun."
+                    },
+                    new
+                    {
+                        quantity = 2,
+                        name = "Çıtır Patates",
+                        line_total = "70.00",
+                        price = 35.00,
+                        customizations = new { added = new string[0] },
+                        notes = ""
+                    },
+                    new
+                    {
+                        quantity = 1,
+                        name = "Kola Zero",
+                        line_total = "30.00",
+                        price = 30.00,
+                        customizations = new { added = new string[0] },
+                        notes = ""
+                    }
+                },
+                links = new
+                {
+                    payment_url = "https://pay.nlkmenu.com/ord-12345"
+                }
+            };
+
+            string json = JsonSerializer.Serialize(mockObj);
+            return JsonDocument.Parse(json).RootElement.Clone();
+        }
+
+        public static byte[] RenderBitmapToEscPos(Bitmap bitmap)
+        {
+            int widthBytes = (bitmap.Width + 7) / 8;
+            using var stream = new MemoryStream();
+            using var writer = new BinaryWriter(stream);
+
+            writer.Write(new byte[] { 0x1B, 0x40, 0x1B, 0x33, 0x00 });
+            writer.Write(new byte[]
+            {
+                0x1D, 0x76, 0x30, 0x00,
+                (byte)(widthBytes & 0xFF), (byte)(widthBytes >> 8),
+                (byte)(bitmap.Height & 0xFF), (byte)(bitmap.Height >> 8)
+            });
+
+            for (int y = 0; y < bitmap.Height; y++)
+            {
+                for (int xByte = 0; xByte < widthBytes; xByte++)
+                {
+                    byte value = 0;
+                    for (int bit = 0; bit < 8; bit++)
+                    {
+                        int x = xByte * 8 + bit;
+                        if (x >= bitmap.Width) continue;
+
+                        Color pixel = bitmap.GetPixel(x, y);
+                        int luminance = (int)(pixel.R * 0.299 + pixel.G * 0.587 + pixel.B * 0.114);
+                        if (pixel.A > 50 && luminance < 128) value |= (byte)(0x80 >> bit);
+                    }
+                    writer.Write(value);
+                }
+            }
+
+            writer.Write(new byte[] { 0x0A, 0x0A, 0x0A, 0x1D, 0x56, 0x41, 0x03 });
+            return stream.ToArray();
         }
     }
 }

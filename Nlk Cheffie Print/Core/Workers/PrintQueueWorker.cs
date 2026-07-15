@@ -33,6 +33,8 @@ namespace Nlk_Cheffie_Print.Core.Workers
             AppendLog("PrintQueueWorker background consumer started.");
         }
 
+
+
         public static void Stop()
         {
             _isRunning = false;
@@ -43,7 +45,7 @@ namespace Nlk_Cheffie_Print.Core.Workers
         {
             Queue.Enqueue(job);
             Signal.Release();
-            AppendLog($"Job enqueued: Role={job.Role}, JobId={job.JobId}");
+            AppendLog($"[QUEUED] JobId={job.JobId} Role={job.Role}");
         }
 
         private static async Task ProcessQueueLoop(CancellationToken token)
@@ -109,12 +111,14 @@ namespace Nlk_Cheffie_Print.Core.Workers
                     return;
                 }
 
+                AppendLog($"[RENDERING] Role={job.Role.ToUpper()} JobId={job.JobId}");
+
                 // Load templates from disk or fallback
                 SlipTemplate template = LoadSlipTemplate(job.Role);
 
                 if (dryRun)
                 {
-                    // Dry run logging representation
+                    // Dry run representation
                     AppendLog($"[DRY RUN] ({job.Role.ToUpper()}) Printing Job {job.JobId}...");
                     using (var bmp = ReceiptRenderer.RenderToBitmap(template, job.Data))
                     {
@@ -126,9 +130,23 @@ namespace Nlk_Cheffie_Print.Core.Workers
                 }
                 else
                 {
-                    AppendLog($"[PRINTING] Spooling ({job.Role.ToUpper()}) to {targetPrinter!.Name} [{targetPrinter.Id}]");
+                    AppendLog($"[SPOOLER SUBMITTED] Spooling to {targetPrinter!.Name} ({targetPrinter.Type})");
 
-                    if (graphicMode || targetPrinter.Type.ToUpper() == "WIN32_GDI")
+                    if (graphicMode && targetPrinter.Type.ToUpper() != "WIN32_GDI")
+                    {
+                        using var bitmap = ReceiptRenderer.RenderToBitmap(template, job.Data);
+                        byte[] rasterBytes = ReceiptRenderer.RenderBitmapToEscPos(bitmap);
+
+                        if (targetPrinter.Type.ToLower() == "usb" || targetPrinter.Type.ToLower() == "win32")
+                        {
+                            EscPosDriver.SendRawToWin32(targetPrinter.Name, rasterBytes);
+                        }
+                        else if (targetPrinter.Type.ToLower() == "ip" || targetPrinter.Type.ToLower() == "network")
+                        {
+                            EscPosDriver.SendRawToIP(targetPrinter.Id, targetPrinter.Port, rasterBytes);
+                        }
+                    }
+                    else if (graphicMode || targetPrinter.Type.ToUpper() == "WIN32_GDI")
                     {
                         // Render to bitmap and draw via GDI
                         using (var bmp = ReceiptRenderer.RenderToBitmap(template, job.Data))
@@ -159,11 +177,12 @@ namespace Nlk_Cheffie_Print.Core.Workers
                         }
                     }
 
+                    AppendLog($"[SUCCESS] JobId={job.JobId}");
                     JobProcessed?.Invoke($"({job.Role.ToUpper()}) Yazdırma başarılı.", false);
                 }
 
-                // 3. Mark duplicate shield as processed
-                if (!string.IsNullOrEmpty(job.JobId))
+                // 3. Mark duplicate shield as processed only on successful print
+                if (!dryRun && !string.IsNullOrEmpty(job.JobId))
                 {
                     _printedJobIds.Add(job.JobId);
                     SaveDeduplicationHistory();
@@ -177,47 +196,14 @@ namespace Nlk_Cheffie_Print.Core.Workers
             }
             catch (Exception ex)
             {
-                AppendLog($"[PRINT ERROR] Role={job.Role}, JobId={job.JobId}: {ex.Message}");
+                AppendLog($"[ERROR] Role={job.Role}, JobId={job.JobId}: {ex.Message}");
                 JobProcessed?.Invoke($"Yazdırma Hatası ({job.Role.ToUpper()}): {ex.Message}", true);
             }
         }
 
         private static SlipTemplate LoadSlipTemplate(string role)
         {
-            // Try to find local json template
-            string appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            string profileSlug = ConfigManager.Current.App.RestaurantSlug;
-            
-            string configDir = string.IsNullOrEmpty(profileSlug) 
-                ? Path.Combine(appData, "nlkCheffiePrint", "config")
-                : Path.Combine(appData, "nlkCheffiePrint", "profiles", profileSlug);
-
-            string path = Path.Combine(configDir, $"{role}_template.json");
-
-            if (File.Exists(path))
-            {
-                try
-                {
-                    string json = File.ReadAllText(path);
-                    var t = JsonSerializer.Deserialize<SlipTemplate>(json);
-                    if (t != null) return t;
-                }
-                catch
-                {
-                    // Fallback to defaults
-                }
-            }
-
-            // Fallback to hardcoded defaults
-            var template = new SlipTemplate();
-            template.Header.Add(new TemplateElement { Type = "text", Content = "{restoran_adi}", Font = "B", Size = "2x", Align = "center" });
-            template.Header.Add(new TemplateElement { Type = "text", Content = "Table: {table_name}", Font = "A", Size = "1x", Align = "left" });
-            template.Header.Add(new TemplateElement { Type = "text", Content = "Order No: {order_no}", Font = "B", Size = "1x", Align = "right" });
-            template.Header.Add(new TemplateElement { Type = "separator" });
-            template.Body.Add(new TemplateElement { Type = "items", Align = "left" });
-            template.Footer.Add(new TemplateElement { Type = "separator" });
-            template.Footer.Add(new TemplateElement { Type = "text", Content = "Grand Total: {toplam_tutar}", Font = "B", Size = "1x", Align = "left" });
-            return template;
+            return TemplateStore.Load(role);
         }
 
         private static void AppendOrderToStreamLog(PrintJob job, string printerName)
@@ -323,7 +309,6 @@ namespace Nlk_Cheffie_Print.Core.Workers
                 string path = Path.Combine(dir, $"printed_jobs_{day}.json");
 
                 var list = new List<string>(_printedJobIds);
-                // Keep only last 2000 jobs
                 if (list.Count > 2000)
                 {
                     list = list.GetRange(list.Count - 2000, 2000);

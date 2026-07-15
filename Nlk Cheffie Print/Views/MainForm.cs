@@ -22,6 +22,13 @@ namespace Nlk_Cheffie_Print.Views
         private ReverbSocketClient? _reverbClient;
         private AutoUpdater? _updater;
 
+        private NotifyIcon? _notifyIcon;
+        private ContextMenuStrip? _trayMenu;
+        private ToolStripMenuItem? _statusMenuItem;
+        private bool _isWsConnected = false;
+        private string? _lastPrinterError = null;
+        private bool _isExiting = false;
+
         public static event Action? OrderListChanged;
 
         public MainForm()
@@ -29,6 +36,7 @@ namespace Nlk_Cheffie_Print.Views
             InitializeComponent();
             LocalizationService.LanguageChanged += TranslateUI;
             this.DoubleBuffered = true;
+            InitializeTrayIcon();
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -163,6 +171,9 @@ namespace Nlk_Cheffie_Print.Views
 
             this.Invoke(new Action(() =>
             {
+                _isWsConnected = isConnected;
+                UpdateTrayStatus();
+
                 if (isConnected)
                 {
                     lblRestaurantName.ForeColor = ThemeManager.ColorSuccess;
@@ -180,11 +191,19 @@ namespace Nlk_Cheffie_Print.Views
 
             this.Invoke(new Action(() =>
             {
-                // Notify user via tray or status bar
-                // We can use a simple tool tip or status message
                 if (isError)
                 {
-                    MessageBox.Show(message, "Yazdırma Hatası", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    _lastPrinterError = message;
+                    UpdateTrayStatus();
+                    _notifyIcon?.ShowBalloonTip(5000, LocalizationService.T("printers.error_title", "Yazıcı Hatası"), message, ToolTipIcon.Warning);
+                }
+                else
+                {
+                    if (_lastPrinterError != null)
+                    {
+                        _lastPrinterError = null;
+                        UpdateTrayStatus();
+                    }
                 }
             }));
         }
@@ -263,6 +282,8 @@ namespace Nlk_Cheffie_Print.Views
             _ordersControl?.TranslateUI();
             _printersControl?.TranslateUI();
             _designerControl?.TranslateUI();
+
+            TranslateTrayMenu();
         }
 
         private void ConfigureNavButton(Button btn)
@@ -386,9 +407,157 @@ namespace Nlk_Cheffie_Print.Views
             TranslateUI();
         }
 
+        private void InitializeTrayIcon()
+        {
+            _notifyIcon = new NotifyIcon();
+            _notifyIcon.Text = LocalizationService.T("tray.tooltip", "Cheffie POS Bridge");
+            _notifyIcon.Visible = true;
+            _notifyIcon.DoubleClick += (s, e) => ShowMainForm();
+
+            _trayMenu = new ContextMenuStrip();
+            _trayMenu.BackColor = ThemeManager.ColorCard;
+            _trayMenu.ForeColor = ThemeManager.ColorText;
+            _trayMenu.ShowImageMargin = false;
+            _trayMenu.Renderer = new ToolStripProfessionalRenderer(new CustomColorTable());
+
+            _statusMenuItem = new ToolStripMenuItem(LocalizationService.T("tray.status_disconnected", "Durum: Bağlı Değil"))
+            {
+                Enabled = false,
+                Font = ThemeManager.FontBodyBold
+            };
+
+            var showItem = new ToolStripMenuItem(LocalizationService.T("tray.show", "Göster"));
+            showItem.Click += (s, e) => ShowMainForm();
+
+            var settingsItem = new ToolStripMenuItem(LocalizationService.T("settings.title", "Ayarlar"));
+            settingsItem.Click += (s, e) => btnSettings_Click(this, EventArgs.Empty);
+
+            var printerStatusItem = new ToolStripMenuItem(LocalizationService.T("tray.printer_status", "Yazıcı Durumu"));
+            printerStatusItem.Click += (s, e) => ShowPrinterStatus();
+
+            var quitItem = new ToolStripMenuItem(LocalizationService.T("tray.quit", "Çıkış"));
+            quitItem.Click += (s, e) => ExitApplication();
+
+            _trayMenu.Items.Add(_statusMenuItem);
+            _trayMenu.Items.Add(new ToolStripSeparator());
+            _trayMenu.Items.Add(showItem);
+            _trayMenu.Items.Add(settingsItem);
+            _trayMenu.Items.Add(printerStatusItem);
+            _trayMenu.Items.Add(new ToolStripSeparator());
+            _trayMenu.Items.Add(quitItem);
+
+            _notifyIcon.ContextMenuStrip = _trayMenu;
+
+            UpdateTrayStatus();
+        }
+
+        private void UpdateTrayStatus()
+        {
+            if (_notifyIcon == null || _statusMenuItem == null) return;
+
+            Color iconColor;
+            string statusText;
+
+            if (!_isWsConnected)
+            {
+                iconColor = Color.FromArgb(244, 67, 54); // Red
+                statusText = LocalizationService.T("tray.status_disconnected", "Durum: Bağlı Değil");
+            }
+            else if (!string.IsNullOrEmpty(_lastPrinterError))
+            {
+                iconColor = Color.FromArgb(255, 152, 0); // Orange/Yellow
+                statusText = $"{LocalizationService.T("tray.printer_error", "Yazıcı Hatası")}: {_lastPrinterError}";
+            }
+            else
+            {
+                iconColor = Color.FromArgb(76, 175, 80); // Green
+                statusText = LocalizationService.T("tray.status_connected", "Durum: Bağlı");
+            }
+
+            _statusMenuItem.Text = statusText;
+
+            // Generate circle icon dynamically
+            using (var bmp = new Bitmap(16, 16))
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                g.Clear(Color.Transparent);
+                using (var brush = new SolidBrush(iconColor))
+                {
+                    g.FillEllipse(brush, 0, 0, 16, 16);
+                }
+                var oldIcon = _notifyIcon.Icon;
+                _notifyIcon.Icon = Icon.FromHandle(bmp.GetHicon());
+                if (oldIcon != null)
+                {
+                    DestroyIcon(oldIcon.Handle);
+                    oldIcon.Dispose();
+                }
+            }
+        }
+
+        private void TranslateTrayMenu()
+        {
+            if (_notifyIcon == null || _trayMenu == null) return;
+
+            _notifyIcon.Text = LocalizationService.T("tray.tooltip", "Cheffie POS Bridge");
+
+            // Re-fetch translations for all menu items
+            _trayMenu.Items[2].Text = LocalizationService.T("tray.show", "Göster");
+            _trayMenu.Items[3].Text = LocalizationService.T("settings.title", "Ayarlar");
+            _trayMenu.Items[4].Text = LocalizationService.T("tray.printer_status", "Yazıcı Durumu");
+            _trayMenu.Items[6].Text = LocalizationService.T("tray.quit", "Çıkış");
+
+            UpdateTrayStatus();
+        }
+
+        private void ShowMainForm()
+        {
+            this.Show();
+            this.WindowState = FormWindowState.Normal;
+            this.BringToFront();
+            this.Activate();
+        }
+
+        private void ShowPrinterStatus()
+        {
+            var printers = ConfigManager.Current.Printers;
+            string kitchen = string.IsNullOrEmpty(printers.Kitchen) ? LocalizationService.T("printers.not_assigned", "Atanmadı") : printers.Kitchen;
+            string cashier = string.IsNullOrEmpty(printers.Cashier) ? LocalizationService.T("printers.not_assigned", "Atanmadı") : printers.Cashier;
+            string courier = string.IsNullOrEmpty(printers.Courier) ? LocalizationService.T("printers.not_assigned", "Atanmadı") : printers.Courier;
+
+            string msg = $"{LocalizationService.T("settings.kitchen", "Mutfak")}: {kitchen}\n" +
+                         $"{LocalizationService.T("settings.cashier", "Kasa")}: {cashier}\n" +
+                         $"{LocalizationService.T("settings.courier", "Kurye")}: {courier}\n\n" +
+                         $"{LocalizationService.T("tray.last_error", "Son Hata")}: {(_lastPrinterError ?? LocalizationService.T("tray.no_error", "Hata Yok"))}";
+
+            MessageBox.Show(msg, LocalizationService.T("tray.printer_status", "Yazıcı Durumu"), MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void ExitApplication()
+        {
+            _isExiting = true;
+            Application.Exit();
+        }
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+        private static extern bool DestroyIcon(IntPtr handle);
+
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
+            if (!_isExiting && e.CloseReason == CloseReason.UserClosing)
+            {
+                e.Cancel = true;
+                this.Hide();
+                return;
+            }
+
             StopBackgroundServices();
+            if (_notifyIcon != null)
+            {
+                _notifyIcon.Visible = false;
+                _notifyIcon.Dispose();
+            }
             base.OnFormClosing(e);
         }
 
@@ -397,5 +566,20 @@ namespace Nlk_Cheffie_Print.Views
             LocalizationService.LanguageChanged -= TranslateUI;
             base.OnHandleDestroyed(e);
         }
+    }
+
+    public class CustomColorTable : ProfessionalColorTable
+    {
+        public override Color ToolStripDropDownBackground => ThemeManager.ColorCard;
+        public override Color MenuBorder => Color.FromArgb(40, Color.White);
+        public override Color MenuItemBorder => Color.Transparent;
+        public override Color MenuItemSelected => Color.FromArgb(60, ThemeManager.ColorAccent); // Subtle orange hover highlight
+        public override Color MenuItemSelectedGradientBegin => Color.FromArgb(60, ThemeManager.ColorAccent);
+        public override Color MenuItemSelectedGradientEnd => Color.FromArgb(60, ThemeManager.ColorAccent);
+        public override Color MenuItemPressedGradientBegin => Color.FromArgb(80, ThemeManager.ColorAccent);
+        public override Color MenuItemPressedGradientEnd => Color.FromArgb(80, ThemeManager.ColorAccent);
+        public override Color ImageMarginGradientBegin => ThemeManager.ColorCard;
+        public override Color ImageMarginGradientMiddle => ThemeManager.ColorCard;
+        public override Color ImageMarginGradientEnd => ThemeManager.ColorCard;
     }
 }

@@ -5,6 +5,7 @@ using System.IO;
 using System.Text.Json;
 using System.Windows.Forms;
 using Nlk_Cheffie_Print.Core;
+using Nlk_Cheffie_Print.Core.Printer;
 using Nlk_Cheffie_Print.Models;
 
 namespace Nlk_Cheffie_Print.Views.Controls
@@ -14,6 +15,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
         private string _activeTemplateId = "kitchen";
         private Dictionary<string, SlipTemplate> _templates = new Dictionary<string, SlipTemplate>();
         private FlatListBox? _activeListBox;
+        private FlatScrollBar scrollBar = null!;
 
         public DesignerControl()
         {
@@ -40,7 +42,22 @@ namespace Nlk_Cheffie_Print.Views.Controls
             // Remove designer anchors to allow manual horizontal centering
             pnlReceiptRoll.Anchor = AnchorStyles.None;
 
-            pnlMiddleCanvas.AutoScroll = true;
+            // Setup scrollbar dynamically
+            scrollBar = new FlatScrollBar
+            {
+                Dock = DockStyle.Right,
+                Width = 12,
+                BackColor = ThemeManager.ColorFieldBg,
+                Visible = false
+            };
+            scrollBar.Scroll += (s, ev) =>
+            {
+                pnlReceiptRoll.Top = 45 - scrollBar.Value;
+            };
+            pnlMiddleCanvas.Controls.Add(scrollBar);
+            pnlMiddleCanvas.AutoScroll = false;
+            pnlMiddleCanvas.MouseWheel += Canvas_MouseWheel;
+
             // Handle resizing events to keep receipt centered and eliminate ghosting trails
             pnlMiddleCanvas.Resize += (s, ev) =>
             {
@@ -51,6 +68,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
 
             SetupTemplateSelector();
             LoadDefaultTemplates();
+            LoadSavedTemplates();
             LoadTemplate(_activeTemplateId);
             TranslateUI();
 
@@ -110,60 +128,17 @@ namespace Nlk_Cheffie_Print.Views.Controls
 
         private void LoadDefaultTemplates()
         {
-            _templates["kitchen"] = GetDefaultTemplate("kitchen");
-            _templates["cashier"] = GetDefaultTemplate("cashier");
-            _templates["courier"] = GetDefaultTemplate("courier");
+            _templates["kitchen"] = TemplateStore.GetDefaultTemplate("kitchen");
+            _templates["cashier"] = TemplateStore.GetDefaultTemplate("cashier");
+            _templates["courier"] = TemplateStore.GetDefaultTemplate("courier");
         }
 
-        private SlipTemplate GetDefaultTemplate(string role)
+        private void LoadSavedTemplates()
         {
-            var template = new SlipTemplate();
-
-            // Header Elements
-            template.Header.Add(new TemplateElement { Type = "text", Content = "{restoran_adi}", Font = "B", Size = "2x", Align = "center" });
-            
-            string titleKey = role switch
+            foreach (string role in new[] { "kitchen", "cashier", "courier" })
             {
-                "kitchen" => "receipt.kitchen_title",
-                "cashier" => "receipt.cashier_title",
-                "courier" => "receipt.courier_title",
-                _ => "receipt.order_slip"
-            };
-            template.Header.Add(new TemplateElement { Type = "text", Content = "{" + titleKey + "}", Font = "B", Size = "2x", Align = "center" });
-            template.Header.Add(new TemplateElement { Type = "separator" });
-            template.Header.Add(new TemplateElement { Type = "text", Content = "{restoran_adres}", Font = "A", Size = "1x", Align = "left" });
-            template.Header.Add(new TemplateElement { Type = "text", Content = "Tel: {restoran_phone}", Font = "A", Size = "1x", Align = "left" });
-            template.Header.Add(new TemplateElement { Type = "text", Content = "Table: {table_name}", Font = "A", Size = "1x", Align = "left" });
-            template.Header.Add(new TemplateElement { Type = "text", Content = "Order No: {order_no}", Font = "B", Size = "1x", Align = "right" });
-            template.Header.Add(new TemplateElement { Type = "text", Content = "Date: {date}  Time: {time}", Font = "A", Size = "1x", Align = "left" });
-            template.Header.Add(new TemplateElement { Type = "separator" });
-
-            // Body Elements
-            template.Body.Add(new TemplateElement { Type = "items", Align = "left" });
-
-            // Footer Elements
-            template.Footer.Add(new TemplateElement { Type = "separator" });
-            template.Footer.Add(new TemplateElement { Type = "text", Content = "Subtotal: {subtotal}", Font = "A", Size = "1x", Align = "left" });
-            template.Footer.Add(new TemplateElement { Type = "text", Content = "Tax: {tax_total}", Font = "A", Size = "1x", Align = "left" });
-            template.Footer.Add(new TemplateElement { Type = "text", Content = "Grand Total: {grand_total}", Font = "B", Size = "1x", Align = "left" });
-            
-            if (role == "courier")
-            {
-                template.Footer.Add(new TemplateElement { Type = "text", Content = "Delivery Address: {delivery_address}", Font = "A", Size = "1x", Align = "left" });
-                template.Footer.Add(new TemplateElement { Type = "text", Content = "Customer: {customer_name} ({customer_phone})", Font = "A", Size = "1x", Align = "left" });
-                template.Footer.Add(new TemplateElement { Type = "text", Content = "Payment: {payment_type}", Font = "A", Size = "1x", Align = "left" });
-                template.Footer.Add(new TemplateElement { Type = "text", Content = "Note: {note}", Font = "A", Size = "1x", Align = "left" });
+                _templates[role] = TemplateStore.Load(role);
             }
-            else
-            {
-                template.Footer.Add(new TemplateElement { Type = "text", Content = "Payment: {payment_type}", Font = "A", Size = "1x", Align = "left" });
-            }
-
-            template.Footer.Add(new TemplateElement { Type = "separator" });
-            template.Footer.Add(new TemplateElement { Type = "qrcode", Content = "{payment_link}", Align = "center" });
-            template.Footer.Add(new TemplateElement { Type = "text", Content = "Powered by Cheffie POS", Font = "A", Size = "1x", Align = "center" });
-
-            return template;
         }
 
         private void LoadTemplate(string templateId)
@@ -171,7 +146,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
             _activeTemplateId = templateId;
             if (!_templates.TryGetValue(templateId, out var template))
             {
-                template = GetDefaultTemplate(templateId);
+                template = TemplateStore.GetDefaultTemplate(templateId);
                 _templates[templateId] = template;
             }
 
@@ -268,22 +243,33 @@ namespace Nlk_Cheffie_Print.Views.Controls
             int w = pnlReceiptRoll.Width;
             int h = pnlReceiptRoll.Height;
 
-            // Draw Drop Shadow
-            using (Brush shadowBrush = new SolidBrush(Color.FromArgb(80, 0, 0, 0)))
+            // Draw Drop Shadow Polygon (follows the zig-zag exactly)
+            using (Brush shadowBrush = new SolidBrush(Color.FromArgb(35, 0, 0, 0)))
             {
-                g.FillRectangle(shadowBrush, new Rectangle(4, 4, w - 8, h - 8));
+                Point[] shadowPts = GetReceiptPaperPolygon(w, h);
+                for (int i = 0; i < shadowPts.Length; i++)
+                {
+                    shadowPts[i].X += 4;
+                    shadowPts[i].Y += 4;
+                }
+                g.FillPolygon(shadowBrush, shadowPts);
             }
 
             // Draw Paper background
             Color paperBg = Color.FromArgb(252, 252, 250);
             using (Brush paperBrush = new SolidBrush(paperBg))
             {
-                // Draw paper roll polygon with zig-zag borders at top/bottom
                 Point[] pts = GetReceiptPaperPolygon(w, h);
                 g.FillPolygon(paperBrush, pts);
             }
 
-            // Draw Receipt Content Preview (Simulated GDI+ rendering of template)
+            // Draw Paper Border (gives depth to paper edges)
+            using (Pen borderPen = new Pen(Color.FromArgb(210, 210, 205), 1))
+            {
+                Point[] pts = GetReceiptPaperPolygon(w, h);
+                g.DrawPolygon(borderPen, pts);
+            }
+
             if (!_templates.TryGetValue(_activeTemplateId, out var template)) return;
 
             int yOffset = 30;
@@ -312,6 +298,8 @@ namespace Nlk_Cheffie_Print.Views.Controls
             }
         }
 
+
+
         private Point[] GetReceiptPaperPolygon(int w, int h)
         {
             var pts = new List<Point>();
@@ -320,26 +308,26 @@ namespace Nlk_Cheffie_Print.Views.Controls
 
             // Top zigzag (left to right)
             pts.Add(new Point(2, 2));
-            while (x < w - 2)
+            while (x < w - 4)
             {
                 pts.Add(new Point(x + zigzagSize / 2, 2 + zigzagSize));
-                pts.Add(new Point(Math.Min(x + zigzagSize, w - 2), 2));
+                pts.Add(new Point(Math.Min(x + zigzagSize, w - 4), 2));
                 x += zigzagSize;
             }
-
-            pts.Add(new Point(w - 2, 2));
-            pts.Add(new Point(w - 2, h - 2));
+            pts.Add(new Point(w - 4, 2));
+            pts.Add(new Point(w - 4, h - 2));
 
             // Bottom zigzag (right to left)
-            x = w - 2;
+            x = w - 4;
             while (x > 2)
             {
                 pts.Add(new Point(x - zigzagSize / 2, h - 2 - zigzagSize));
                 pts.Add(new Point(Math.Max(x - zigzagSize, 2), h - 2));
                 x -= zigzagSize;
             }
-
             pts.Add(new Point(2, h - 2));
+            pts.Add(new Point(2, 2));
+
             return pts.ToArray();
         }
 
@@ -362,21 +350,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
 
             if (el.Type == "qrcode")
             {
-                string qrText = el.Content;
-                // Substitute placeholders for preview
-                qrText = qrText.Replace("{restoran_adi}", ConfigManager.Current.App.RestaurantName)
-                               .Replace("{restoran_adres}", ConfigManager.Current.App.RestaurantAddress)
-                               .Replace("{restoran_phone}", ConfigManager.Current.App.RestaurantPhone)
-                               .Replace("{table_name}", "Table Garden-1")
-                               .Replace("{order_no}", "S-001")
-                               .Replace("{date}", DateTime.Now.ToString("dd.MM.yyyy"))
-                               .Replace("{time}", DateTime.Now.ToString("HH:mm"))
-                               .Replace("{subtotal}", "100.00 TL")
-                               .Replace("{tax_total}", "10.00 TL")
-                               .Replace("{grand_total}", "110.00 TL")
-                               .Replace("{payment_type}", "Cash")
-                               .Replace("{payment_link}", "https://nlkmenu.com")
-                               .Replace("{odeme_linki}", "https://nlkmenu.com");
+                string qrText = SubstituteForPreview(el.Content);
 
                 if (string.IsNullOrEmpty(qrText)) qrText = "https://nlkmenu.com";
 
@@ -419,7 +393,31 @@ namespace Nlk_Cheffie_Print.Views.Controls
 
             if (el.Type == "logo")
             {
-                // Draw mock logo box
+                string path = el.Path;
+                if (!string.IsNullOrEmpty(path))
+                {
+                    string resolvedPath = ResolveLogoPath(path);
+                    if (File.Exists(resolvedPath))
+                    {
+                        try
+                        {
+                            using (var img = Image.FromFile(resolvedPath))
+                            {
+                                int w = Math.Min(img.Width, 120);
+                                int h = (int)(img.Height * ((double)w / img.Width));
+                                int xImg = (paperWidth - w) / 2;
+                                g.DrawImage(img, xImg, yOffset, w, h);
+                                return yOffset + h + 12;
+                            }
+                        }
+                        catch
+                        {
+                            // Fall through to mock box
+                        }
+                    }
+                }
+
+                // Draw mock logo box if file doesn't exist
                 int logoW = 70;
                 int logoH = 30;
                 int x = (paperWidth - logoW) / 2;
@@ -448,20 +446,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
             }
 
             // Standard Text rendering
-            string text = el.Content;
-            
-            // Perform basic template substitutions for preview
-            text = text.Replace("{restoran_adi}", ConfigManager.Current.App.RestaurantName)
-                       .Replace("{restoran_adres}", ConfigManager.Current.App.RestaurantAddress)
-                       .Replace("{restoran_phone}", ConfigManager.Current.App.RestaurantPhone)
-                       .Replace("{table_name}", "Table Garden-1")
-                       .Replace("{order_no}", "S-001")
-                       .Replace("{date}", DateTime.Now.ToString("dd.MM.yyyy"))
-                       .Replace("{time}", DateTime.Now.ToString("HH:mm"))
-                       .Replace("{subtotal}", "100.00 TL")
-                       .Replace("{tax_total}", "10.00 TL")
-                       .Replace("{grand_total}", "110.00 TL")
-                       .Replace("{payment_type}", "Cash");
+            string text = SubstituteForPreview(el.Content);
 
             // Look up translation keys for texts like {receipt.kitchen_title}
             if (text.Contains("{receipt."))
@@ -473,19 +458,19 @@ namespace Nlk_Cheffie_Print.Views.Controls
             Font fnUse = el.Font == "B" ? fnBold : fnNormal;
             if (el.Size == "2x") fnUse = fnHeader;
 
-            SizeF size = g.MeasureString(text, fnUse);
+            SizeF size = g.MeasureString(text, fnUse, usableWidth);
             float drawX = margin;
 
             if (el.Align == "center")
             {
-                drawX = (paperWidth - size.Width) / 2;
+                drawX = margin + (usableWidth - size.Width) / 2;
             }
             else if (el.Align == "right")
             {
-                drawX = paperWidth - margin - size.Width;
+                drawX = margin + usableWidth - size.Width;
             }
 
-            g.DrawString(text, fnUse, brush, drawX, yOffset);
+            g.DrawString(text, fnUse, brush, new RectangleF(drawX, yOffset, usableWidth, size.Height + 5));
 
             return yOffset + (int)size.Height + 2;
         }
@@ -617,14 +602,18 @@ namespace Nlk_Cheffie_Print.Views.Controls
 
             if (confirmResult == DialogResult.Yes)
             {
-                _templates[_activeTemplateId] = GetDefaultTemplate(_activeTemplateId);
+                foreach (string role in new[] { "kitchen", "cashier", "courier" })
+                {
+                    _templates[role] = TemplateStore.GetDefaultTemplate(role);
+                    TemplateStore.Save(role, _templates[role]);
+                }
                 LoadTemplate(_activeTemplateId);
             }
         }
 
         private void btnSaveDesign_Click(object sender, EventArgs e)
         {
-            // simulated save success
+            TemplateStore.Save(_activeTemplateId, _templates[_activeTemplateId]);
             MessageBox.Show(
                 LocalizationService.T("designer.dialogs.save_success_msg"),
                 LocalizationService.T("designer.dialogs.save_success_title"),
@@ -644,9 +633,36 @@ namespace Nlk_Cheffie_Print.Views.Controls
             const int paperWidth = 300; // Fixed realistic width for 80mm receipt paper roll preview
             pnlReceiptRoll.SuspendLayout();
             pnlReceiptRoll.Width = paperWidth;
-            pnlReceiptRoll.Left = Math.Max(10, (pnlMiddleCanvas.ClientSize.Width - paperWidth) / 2);
-            pnlReceiptRoll.Top = 45;
-            pnlReceiptRoll.Height = CalculateReceiptHeight();
+            pnlReceiptRoll.Left = Math.Max(10, (pnlMiddleCanvas.ClientSize.Width - (scrollBar != null && scrollBar.Visible ? scrollBar.Width : 0) - paperWidth) / 2);
+            
+            if (scrollBar != null)
+            {
+                int visibleHeight = pnlMiddleCanvas.Height;
+                int totalHeight = CalculateReceiptHeight() + 90; // height + top/bottom padding
+                int maxScroll = totalHeight - visibleHeight;
+
+                if (maxScroll > 0)
+                {
+                    scrollBar.Minimum = 0;
+                    scrollBar.Maximum = totalHeight;
+                    scrollBar.LargeChange = visibleHeight;
+                    scrollBar.Visible = true;
+                }
+                else
+                {
+                    scrollBar.Visible = false;
+                    scrollBar.Value = 0;
+                }
+
+                pnlReceiptRoll.Height = totalHeight - 90;
+                pnlReceiptRoll.Top = 45 - scrollBar.Value;
+            }
+            else
+            {
+                pnlReceiptRoll.Top = 45;
+                pnlReceiptRoll.Height = CalculateReceiptHeight();
+            }
+
             pnlReceiptRoll.ResumeLayout();
             pnlReceiptRoll.Invalidate(); // Force immediate redraw of template elements
         }
@@ -655,6 +671,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
         {
             if (!_templates.TryGetValue(_activeTemplateId, out var template)) return 150;
 
+            const int paperWidth = 300;
             int yOffset = 30; // initial top padding
 
             using (Graphics g = this.CreateGraphics())
@@ -691,18 +708,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
                     }
                     else
                     {
-                        string text = el.Content;
-                        text = text.Replace("{restoran_adi}", ConfigManager.Current.App.RestaurantName)
-                                   .Replace("{restoran_adres}", ConfigManager.Current.App.RestaurantAddress)
-                                   .Replace("{restoran_phone}", ConfigManager.Current.App.RestaurantPhone)
-                                   .Replace("{table_name}", "Table Garden-1")
-                                   .Replace("{order_no}", "S-001")
-                                   .Replace("{date}", DateTime.Now.ToString("dd.MM.yyyy"))
-                                   .Replace("{time}", DateTime.Now.ToString("HH:mm"))
-                                   .Replace("{subtotal}", "100.00 TL")
-                                   .Replace("{tax_total}", "10.00 TL")
-                                   .Replace("{grand_total}", "110.00 TL")
-                                   .Replace("{payment_type}", "Cash");
+                        string text = SubstituteForPreview(el.Content);
 
                         if (text.Contains("{receipt."))
                         {
@@ -713,13 +719,21 @@ namespace Nlk_Cheffie_Print.Views.Controls
                         Font fnUse = el.Font == "B" ? fnBold : fnNormal;
                         if (el.Size == "2x") fnUse = fnHeader;
 
-                        SizeF size = g.MeasureString(text, fnUse);
+                        int margin = 16;
+                        int usableWidth = paperWidth - (margin * 2);
+                        SizeF size = g.MeasureString(text, fnUse, usableWidth);
                         yOffset += (int)size.Height + 2;
                     }
                 }
             }
 
             return yOffset + 30; // 30px bottom padding
+        }
+
+        private string SubstituteForPreview(string content)
+        {
+            var ctx = ReceiptRenderer.GetMockContext();
+            return ReceiptRenderer.Substitute(content, ctx);
         }
 
         private void ReorderElement(string section, int oldIdx, int newIdx)
@@ -739,6 +753,45 @@ namespace Nlk_Cheffie_Print.Views.Controls
                 // Refresh layout and preview
                 CenterReceiptRoll();
             }
+        }
+
+        private void Canvas_MouseWheel(object? sender, MouseEventArgs e)
+        {
+            if (scrollBar == null || !scrollBar.Visible) return;
+            int val = scrollBar.Value - (e.Delta / 120) * 40;
+            int maxVal = scrollBar.Maximum - scrollBar.LargeChange + 1;
+            if (val < 0) val = 0;
+            if (val > maxVal) val = maxVal;
+
+            scrollBar.Value = val;
+            pnlReceiptRoll.Top = 45 - val;
+        }
+
+        private static string ResolveLogoPath(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return "";
+            if (Path.IsPathRooted(path) && File.Exists(path)) return path;
+
+            // Try local AppData profile/config directories
+            string appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            string slug = ConfigManager.Current.App.RestaurantSlug;
+            
+            if (!string.IsNullOrWhiteSpace(slug))
+            {
+                string profilePath = Path.Combine(appData, "nlkCheffiePrint", "profiles", slug, path);
+                if (File.Exists(profilePath)) return profilePath;
+            }
+
+            string defaultConfigPath = Path.Combine(appData, "nlkCheffiePrint", "config", path);
+            if (File.Exists(defaultConfigPath)) return defaultConfigPath;
+
+            string baseConfigPath = Path.Combine(appData, "nlkCheffiePrint", path);
+            if (File.Exists(baseConfigPath)) return baseConfigPath;
+
+            string curPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, path);
+            if (File.Exists(curPath)) return curPath;
+
+            return path;
         }
     }
 }

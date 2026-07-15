@@ -26,6 +26,9 @@ namespace Nlk_Cheffie_Print.Views.Controls
         // Guard: prevent concurrent LoadOrders calls causing duplicate rows
         private bool _isLoading;
 
+        private int _hoveredRowIndex = -1;
+        private int _hoveredColumnIndex = -1;
+
         public OrdersControl()
         {
             InitializeComponent();
@@ -41,6 +44,9 @@ namespace Nlk_Cheffie_Print.Views.Controls
             SetupGridColumns();
             ThemeManager.ApplyTheme(this);
             TranslateUI();
+            dgvOrders.CellPainting += dgvOrders_CellPainting;
+            dgvOrders.CellMouseEnter += dgvOrders_CellMouseEnter;
+            dgvOrders.CellMouseLeave += dgvOrders_CellMouseLeave;
             MainForm.OrderListChanged += OnOrderListChanged;
 
             // Connect FlatScrollBar to DataGridView
@@ -430,11 +436,15 @@ namespace Nlk_Cheffie_Print.Views.Controls
                 OrderNumber     = GetJsonStr(root, "order_number"),
                 Status          = TranslateStatus(GetJsonStr(root, "status")),
                 PaymentMethod   = TranslatePaymentMethod(GetJsonStr(root, "payment_method")),
+                PaymentStatus   = GetJsonStr(root, "payment_status"),
                 OrderNote       = GetJsonStr(root, "notes"),
                 CustomerName    = GetJsonStr(root, "customer_name"),
                 CustomerPhone   = GetJsonStr(root, "customer_phone"),
+                CustomerEmail   = GetJsonStr(root, "customer_email"),
                 DeliveryAddress = GetJsonStr(root, "delivery_address"),
             };
+            if (string.IsNullOrEmpty(order.CustomerEmail)) order.CustomerEmail = GetJsonStr(root, "email");
+            if (string.IsNullOrEmpty(order.PaymentStatus)) order.PaymentStatus = GetJsonStr(root, "payment_state");
 
             // Total: try total_amount (API), then subtotal, then total (legacy)
             string totalRaw = GetJsonStr(root, "total_amount");
@@ -464,9 +474,13 @@ namespace Nlk_Cheffie_Print.Views.Controls
                 if (string.IsNullOrEmpty(order.Section))       order.Section       = TranslateSection(GetJsonStr(oi, "section"));
                 if (string.IsNullOrEmpty(order.Status))        order.Status        = TranslateStatus(GetJsonStr(oi, "status"));
                 if (string.IsNullOrEmpty(order.PaymentMethod)) order.PaymentMethod = TranslatePaymentMethod(GetJsonStr(oi, "payment_method"));
+                if (string.IsNullOrEmpty(order.PaymentStatus)) order.PaymentStatus = GetJsonStr(oi, "payment_status");
+                if (string.IsNullOrEmpty(order.PaymentStatus)) order.PaymentStatus = GetJsonStr(oi, "payment_state");
                 if (string.IsNullOrEmpty(order.OrderNote))     order.OrderNote     = GetJsonStr(oi, "order_note");
                 if (string.IsNullOrEmpty(order.CustomerName))  order.CustomerName  = GetJsonStr(oi, "customer_name");
                 if (string.IsNullOrEmpty(order.CustomerPhone)) order.CustomerPhone = GetJsonStr(oi, "customer_phone");
+                if (string.IsNullOrEmpty(order.CustomerEmail)) order.CustomerEmail = GetJsonStr(oi, "customer_email");
+                if (string.IsNullOrEmpty(order.CustomerEmail)) order.CustomerEmail = GetJsonStr(oi, "email");
                 if (string.IsNullOrEmpty(order.DeliveryAddress)) order.DeliveryAddress = GetJsonStr(oi, "delivery_address");
                 if (string.IsNullOrEmpty(order.TotalAmount))   order.TotalAmount   = GetJsonStr(oi, "total") + " TL";
             }
@@ -481,7 +495,14 @@ namespace Nlk_Cheffie_Print.Views.Controls
                 oi3.TryGetProperty("date", out var d))
                 ts = $"{d.GetString()} {GetJsonStr(oi3, "time")}";
 
-            order.DateTime = DateTime.TryParse(ts, out DateTime dt) ? dt : DateTime.Now;
+            if (DateTime.TryParse(ts, null, System.Globalization.DateTimeStyles.RoundtripKind, out DateTime dt))
+            {
+                order.DateTime = ts.EndsWith("Z", StringComparison.OrdinalIgnoreCase) ? dt.ToUniversalTime() : dt;
+            }
+            else
+            {
+                order.DateTime = DateTime.Now;
+            }
 
             // Items: order_items (API) or items (WebSocket/log)
             JsonElement itemsEl = default;
@@ -494,26 +515,154 @@ namespace Nlk_Cheffie_Print.Views.Controls
             {
                 foreach (var item in itemsEl.EnumerateArray())
                 {
-                    string name = GetJsonStr(item, "product_name");
-                    if (string.IsNullOrEmpty(name)) name = GetJsonStr(item, "name");
-
-                    string lineTotal = GetJsonStr(item, "subtotal");
-                    if (string.IsNullOrEmpty(lineTotal)) lineTotal = GetJsonStr(item, "line_total");
-
                     int qty = 1;
                     if (item.TryGetProperty("quantity", out var q) && q.ValueKind == JsonValueKind.Number)
                         qty = q.GetInt32();
 
+                    // Parse name (multilingual and nested support)
+                    string name = GetJsonStr(item, "name");
+                    if (string.IsNullOrEmpty(name)) name = GetJsonStr(item, "product_name");
+                    if (string.IsNullOrEmpty(name) && item.TryGetProperty("product", out var prodObj) && prodObj.ValueKind == JsonValueKind.Object)
+                    {
+                        if (prodObj.TryGetProperty("name", out var prodNames))
+                        {
+                            if (prodNames.ValueKind == JsonValueKind.String)
+                            {
+                                name = prodNames.GetString() ?? "";
+                            }
+                            else if (prodNames.ValueKind == JsonValueKind.Object)
+                            {
+                                string language = ConfigManager.Current.App.Language;
+                                name = GetJsonStr(prodNames, language);
+                                if (string.IsNullOrEmpty(name)) name = GetJsonStr(prodNames, "tr");
+                                if (string.IsNullOrEmpty(name)) name = GetJsonStr(prodNames, "en");
+                            }
+                        }
+                    }
+
+                    // Parse total/price
+                    string lineTotal = GetJsonStr(item, "subtotal");
+                    if (string.IsNullOrEmpty(lineTotal)) lineTotal = GetJsonStr(item, "line_total");
+                    if (string.IsNullOrEmpty(lineTotal))
+                    {
+                        string priceStr = GetJsonStr(item, "price");
+                        if (double.TryParse(priceStr, out double priceVal))
+                        {
+                            lineTotal = (priceVal * qty).ToString("0.00");
+                        }
+                    }
+                    if (string.IsNullOrEmpty(lineTotal))
+                    {
+                        if (item.TryGetProperty("product", out var prodObjForPrice) && prodObjForPrice.ValueKind == JsonValueKind.Object)
+                        {
+                            string priceStr = GetJsonStr(prodObjForPrice, "price");
+                            if (double.TryParse(priceStr, out double priceVal))
+                            {
+                                lineTotal = (priceVal * qty).ToString("0.00");
+                            }
+                        }
+                    }
+
+                    // Parse customizations (extras)
+                    var addedCust = new List<string>();
+
+                    // 1. Try Laravel "extras" relation array
+                    if (item.TryGetProperty("extras", out var extrasEl) && extrasEl.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var ex in extrasEl.EnumerateArray())
+                        {
+                            string exName = GetJsonStr(ex, "name");
+                            if (string.IsNullOrEmpty(exName)) exName = GetJsonStr(ex, "option_name");
+
+                            string exPrice = GetJsonStr(ex, "price");
+                            if (double.TryParse(exPrice, out double exPriceVal) && exPriceVal > 0)
+                            {
+                                exName += $" (+{exPriceVal:0.00} TL)";
+                            }
+                            if (!string.IsNullOrEmpty(exName) && !addedCust.Contains(exName))
+                            {
+                                addedCust.Add(exName);
+                            }
+                        }
+                    }
+
+                    // 2. Try standard customizations
+                    if (item.TryGetProperty("customizations", out var custEl))
+                    {
+                        if (custEl.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var c in custEl.EnumerateArray())
+                            {
+                                string cName = c.ValueKind == JsonValueKind.String ? c.GetString() ?? "" : GetJsonStr(c, "name");
+                                if (c.ValueKind == JsonValueKind.Object)
+                                {
+                                    string cPrice = GetJsonStr(c, "price");
+                                    if (double.TryParse(cPrice, out double cPriceVal) && cPriceVal > 0)
+                                    {
+                                        cName += $" (+{cPriceVal:0.00} TL)";
+                                    }
+                                }
+                                if (!string.IsNullOrEmpty(cName) && !addedCust.Contains(cName))
+                                {
+                                    addedCust.Add(cName);
+                                }
+                            }
+                        }
+                        else if (custEl.ValueKind == JsonValueKind.Object && custEl.TryGetProperty("added", out var addedEl) && addedEl.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var c in addedEl.EnumerateArray())
+                            {
+                                string cName = c.ValueKind == JsonValueKind.String ? c.GetString() ?? "" : GetJsonStr(c, "name");
+                                if (c.ValueKind == JsonValueKind.Object)
+                                {
+                                    string cPrice = GetJsonStr(c, "price");
+                                    if (double.TryParse(cPrice, out double cPriceVal) && cPriceVal > 0)
+                                    {
+                                        cName += $" (+{cPriceVal:0.00} TL)";
+                                    }
+                                }
+                                if (!string.IsNullOrEmpty(cName) && !addedCust.Contains(cName))
+                                {
+                                    addedCust.Add(cName);
+                                }
+                            }
+                        }
+                    }
+
                     order.Items.Add(new OrderItem
                     {
-                        Name      = name,
-                        Quantity  = qty,
-                        UnitPrice = GetJsonStr(item, "price"),
-                        LineTotal = lineTotal,
-                        Notes     = GetJsonStr(item, "notes")
+                        Name                 = name,
+                        Quantity             = qty,
+                        UnitPrice            = GetJsonStr(item, "price"),
+                        LineTotal            = lineTotal,
+                        Notes                = GetJsonStr(item, "notes"),
+                        AddedCustomizations  = addedCust
                     });
                 }
             }
+
+            // Parse subtotal, tax, and extras_total
+            string sub = GetJsonStr(root, "subtotal");
+            string tx = GetJsonStr(root, "tax");
+            if (string.IsNullOrEmpty(tx)) tx = GetJsonStr(root, "tax_amount");
+            string ext = GetJsonStr(root, "extras_total");
+
+            if (root.TryGetProperty("payment_info", out var pInfo) && pInfo.ValueKind == JsonValueKind.Object)
+            {
+                if (string.IsNullOrEmpty(sub)) sub = GetJsonStr(pInfo, "subtotal");
+                if (string.IsNullOrEmpty(tx))  tx  = GetJsonStr(pInfo, "tax");
+                if (string.IsNullOrEmpty(ext)) ext = GetJsonStr(pInfo, "extras_total");
+            }
+            if (root.TryGetProperty("order_info", out var oInfo) && oInfo.ValueKind == JsonValueKind.Object)
+            {
+                if (string.IsNullOrEmpty(sub)) sub = GetJsonStr(oInfo, "subtotal");
+                if (string.IsNullOrEmpty(tx))  tx  = GetJsonStr(oInfo, "tax");
+                if (string.IsNullOrEmpty(ext)) ext = GetJsonStr(oInfo, "extras_total");
+            }
+
+            order.Subtotal = string.IsNullOrEmpty(sub) ? "0.00" : sub;
+            order.Tax = string.IsNullOrEmpty(tx) ? "0.00" : tx;
+            order.ExtrasTotal = string.IsNullOrEmpty(ext) ? "0.00" : ext;
 
             return order;
         }
@@ -603,45 +752,35 @@ namespace Nlk_Cheffie_Print.Views.Controls
                 ShowOrderDetail(order);
         }
 
+        private void dgvOrders_CellMouseEnter(object? sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0 && e.ColumnIndex >= 0 && dgvOrders.Columns[e.ColumnIndex].Name == "colDetail")
+            {
+                _hoveredRowIndex = e.RowIndex;
+                _hoveredColumnIndex = e.ColumnIndex;
+                dgvOrders.InvalidateCell(e.ColumnIndex, e.RowIndex);
+            }
+        }
+
+        private void dgvOrders_CellMouseLeave(object? sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0 && e.ColumnIndex >= 0 && dgvOrders.Columns[e.ColumnIndex].Name == "colDetail")
+            {
+                int oldRow = _hoveredRowIndex;
+                int oldCol = _hoveredColumnIndex;
+                _hoveredRowIndex = -1;
+                _hoveredColumnIndex = -1;
+                if (oldRow == e.RowIndex && oldCol == e.ColumnIndex)
+                {
+                    dgvOrders.InvalidateCell(oldCol, oldRow);
+                }
+            }
+        }
+
         private static void ShowOrderDetail(Order order)
         {
-            string title = $"{LocalizationService.T("orders.detail.dialog_title")} - {order.OrderNumber}";
-            var sb = new System.Text.StringBuilder();
-            sb.AppendLine($"=== {LocalizationService.T("orders.detail.order_header")} {order.OrderNumber} ===");
-            sb.AppendLine($"{LocalizationService.T("orders.detail.date")}: {order.DateTime:dd.MM.yyyy HH:mm}");
-            sb.AppendLine($"{LocalizationService.T("orders.detail.section")}: {order.Section}");
-            sb.AppendLine($"{LocalizationService.T("orders.detail.table")}: {order.TableName}");
-            sb.AppendLine($"{LocalizationService.T("orders.detail.waiter")}: {order.WaiterName}");
-            sb.AppendLine();
-
-            if (!string.IsNullOrEmpty(order.CustomerName))
-            {
-                sb.AppendLine($"=== {LocalizationService.T("orders.detail.customer")} ===");
-                sb.AppendLine($"{order.CustomerName} ({order.CustomerPhone})");
-                if (!string.IsNullOrEmpty(order.DeliveryAddress))
-                    sb.AppendLine($"{LocalizationService.T("orders.detail.address")}: {order.DeliveryAddress}");
-                sb.AppendLine();
-            }
-
-            sb.AppendLine($"=== {LocalizationService.T("orders.detail.products")} ===");
-            foreach (var item in order.Items)
-            {
-                sb.AppendLine($"{item.Quantity}x {item.Name} - {item.LineTotal} TL");
-                if (item.AddedCustomizations.Count   > 0) sb.AppendLine($"  + {string.Join(", ", item.AddedCustomizations)}");
-                if (item.RemovedCustomizations.Count > 0) sb.AppendLine($"  - {string.Join(", ", item.RemovedCustomizations)}");
-                if (!string.IsNullOrEmpty(item.Notes))    sb.AppendLine($"  * {item.Notes}");
-            }
-            sb.AppendLine();
-            sb.AppendLine($"{LocalizationService.T("orders.detail.payment_type")}: {order.PaymentMethod}");
-            sb.AppendLine($"{LocalizationService.T("orders.detail.total")}: {order.TotalAmount}");
-            sb.AppendLine($"{LocalizationService.T("orders.detail.status")}: {order.Status}");
-            if (!string.IsNullOrEmpty(order.OrderNote))
-            {
-                sb.AppendLine();
-                sb.AppendLine($"* {order.OrderNote}");
-            }
-
-            MessageBox.Show(sb.ToString(), title, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            using var preview = new ReceiptPreviewForm(order);
+            preview.ShowDialog();
         }
 
         private void OnOrderListChanged()
@@ -650,6 +789,105 @@ namespace Nlk_Cheffie_Print.Views.Controls
                 Invoke(() => _ = LoadOrders(1));
             else
                 _ = LoadOrders(1);
+        }
+
+        private static string TranslatePaymentStatus(string status) => status.ToLowerInvariant() switch
+        {
+            "pending" => LocalizationService.T("payment.status.pending", "Bekliyor"),
+            "paid"    => LocalizationService.T("payment.status.paid", "Ödendi"),
+            "waiting" => LocalizationService.T("payment.status.pending", "Bekliyor"),
+            "error"   => LocalizationService.T("payment.status.error", "Hata"),
+            "refunded"=> LocalizationService.T("payment.status.refunded", "İade"),
+            _         => status
+        };
+
+        private void dgvOrders_CellPainting(object? sender, DataGridViewCellPaintingEventArgs e)
+        {
+            if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
+            {
+                string colName = dgvOrders.Columns[e.ColumnIndex].Name;
+                if (colName == "colPayment")
+                {
+                    // Draw background
+                    e.PaintBackground(e.CellBounds, true);
+
+                    if (dgvOrders.Rows[e.RowIndex].DataBoundItem is Order order)
+                    {
+                        // Get values
+                        string methodStr = TranslatePaymentMethod(order.PaymentMethod);
+                        string statusStr = TranslatePaymentStatus(order.PaymentStatus);
+
+                        // Colors: method is Green, status is Orange/Yellow
+                        Color methodColor = Color.FromArgb(76, 175, 80); // Green
+                        Color statusColor = Color.FromArgb(255, 152, 0); // Orange/Yellow
+
+                        // Calculate layout bounds
+                        int cellHeight = e.CellBounds.Height;
+                        int textHeight = 32; // height of both lines + spacing
+                        int x = e.CellBounds.X + 8;
+                        int y = e.CellBounds.Y + (cellHeight - textHeight) / 2;
+
+                        // Draw first line (Method)
+                        using (var brushMethod = new SolidBrush(methodColor))
+                        {
+                            e.Graphics.DrawString(methodStr, ThemeManager.FontBodyBold, brushMethod, x, y);
+                        }
+
+                        // Draw second line (Status)
+                        using (var brushStatus = new SolidBrush(statusColor))
+                        {
+                            e.Graphics.DrawString(statusStr, ThemeManager.FontBody, brushStatus, x, y + 16);
+                        }
+                    }
+
+                    e.Handled = true;
+                }
+                else if (colName == "colDetail")
+                {
+                    // Paint cell background
+                    e.PaintBackground(e.CellBounds, true);
+
+                    // Draw a nice premium flat button in the cell
+                    int padX = 8;
+                    int padY = 8;
+                    var btnBounds = new Rectangle(e.CellBounds.X + padX, e.CellBounds.Y + padY, e.CellBounds.Width - (padX * 2), e.CellBounds.Height - (padY * 2));
+
+                    // Use dark card color, or orange highlight if hovered, or gray if selected
+                    bool isSelected = (e.State & DataGridViewElementStates.Selected) != 0;
+                    bool isHovered = (e.RowIndex == _hoveredRowIndex && e.ColumnIndex == _hoveredColumnIndex);
+
+                    Color btnBg;
+                    if (isHovered)
+                        btnBg = Color.FromArgb(70, ThemeManager.ColorAccent); // Glow accent orange on hover
+                    else if (isSelected)
+                        btnBg = Color.FromArgb(56, 56, 58);
+                    else
+                        btnBg = ThemeManager.ColorCard;
+
+                    using (var brushBg = new SolidBrush(btnBg))
+                    {
+                        e.Graphics.FillRectangle(brushBg, btnBounds);
+                    }
+
+                    // Draw thin border
+                    using (var penBorder = new Pen(Color.FromArgb(40, Color.White), 1))
+                    {
+                        e.Graphics.DrawRectangle(penBorder, btnBounds);
+                    }
+
+                    // Draw "Detay" button text
+                    string btnText = LocalizationService.T("orders.detail.dialog_title", "Detay");
+                    using (var brushText = new SolidBrush(isHovered ? Color.White : ThemeManager.ColorAccent))
+                    {
+                        var size = e.Graphics.MeasureString(btnText, ThemeManager.FontBodyBold);
+                        float tx = btnBounds.X + (btnBounds.Width - size.Width) / 2;
+                        float ty = btnBounds.Y + (btnBounds.Height - size.Height) / 2;
+                        e.Graphics.DrawString(btnText, ThemeManager.FontBodyBold, brushText, tx, ty);
+                    }
+
+                    e.Handled = true;
+                }
+            }
         }
     }
 }

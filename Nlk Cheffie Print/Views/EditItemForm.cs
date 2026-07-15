@@ -247,7 +247,12 @@ namespace Nlk_Cheffie_Print.Views
             using (OpenFileDialog ofd = new OpenFileDialog())
             {
                 ofd.Title = LocalizationService.T("designer.dialogs.logo_browse_title");
-                ofd.Filter = LocalizationService.T("designer.dialogs.logo_browse_filter");
+                string filter = LocalizationService.T("designer.dialogs.logo_browse_filter");
+                if (string.IsNullOrWhiteSpace(filter) || !filter.Contains("|"))
+                {
+                    filter = "Resim Dosyaları (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp|Tüm Dosyalar (*.*)|*.*";
+                }
+                ofd.Filter = filter;
                 if (ofd.ShowDialog() == DialogResult.OK)
                 {
                     txtContent.Text = ofd.FileName;

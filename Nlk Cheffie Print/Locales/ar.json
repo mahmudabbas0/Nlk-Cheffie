@@ -239,7 +239,7 @@
       "error_data_not_found": "بيانات العنصر غير متوفرة.",
       "error_open_edit": "تعذر فتح نافذة التعديل. أعد المحاولة.",
       "logo_browse_title": "اختر صورة الشعار",
-      "logo_browse_filter": "ملفات الصور (*.png *.jpg *.jpeg *.bmp)",
+      "logo_browse_filter": "ملفات الصور (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp|جميع الملفات (*.*)|*.*",
       "new_text_default": "نص جديد"
     },
     "items": {
