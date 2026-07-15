@@ -85,11 +85,13 @@ namespace Nlk_Cheffie_Print.Views
             // Select active role
             for (int i = 0; i < cmbAutoPrintRole.Items.Count; i++)
             {
-                var kvp = (KeyValuePair<string, string>)cmbAutoPrintRole.Items[i];
-                if (kvp.Key == app.AutoPrintRole)
+                if (cmbAutoPrintRole.Items[i] is KeyValuePair<string, string> kvp)
                 {
-                    cmbAutoPrintRole.SelectedIndex = i;
-                    break;
+                    if (kvp.Key == app.AutoPrintRole)
+                    {
+                        cmbAutoPrintRole.SelectedIndex = i;
+                        break;
+                    }
                 }
             }
             if (cmbAutoPrintRole.SelectedIndex < 0 && cmbAutoPrintRole.Items.Count > 0)
@@ -98,11 +100,13 @@ namespace Nlk_Cheffie_Print.Views
             // Select active language
             for (int i = 0; i < cmbLanguage.Items.Count; i++)
             {
-                var kvp = (KeyValuePair<string, string>)cmbLanguage.Items[i];
-                if (kvp.Key == app.Language)
+                if (cmbLanguage.Items[i] is KeyValuePair<string, string> kvp)
                 {
-                    cmbLanguage.SelectedIndex = i;
-                    break;
+                    if (kvp.Key == app.Language)
+                    {
+                        cmbLanguage.SelectedIndex = i;
+                        break;
+                    }
                 }
             }
             if (cmbLanguage.SelectedIndex < 0 && cmbLanguage.Items.Count > 0)

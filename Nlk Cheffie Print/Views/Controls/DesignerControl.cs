@@ -226,7 +226,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
             }
         }
 
-        private void cmbTemplate_SelectedIndexChanged(object sender, EventArgs e)
+        private void cmbTemplate_SelectedIndexChanged(object? sender, EventArgs e)
         {
             string id = cmbTemplate.SelectedIndex switch
             {

@@ -109,11 +109,13 @@ namespace Nlk_Cheffie_Print.Views.Controls
             {
                 for (int i = 0; i < combo.Items.Count; i++)
                 {
-                    var kvp = (KeyValuePair<string, string>)combo.Items[i];
-                    if (kvp.Key == selectedId)
+                    if (combo.Items[i] is KeyValuePair<string, string> kvp)
                     {
-                        combo.SelectedIndex = i;
-                        break;
+                        if (kvp.Key == selectedId)
+                        {
+                            combo.SelectedIndex = i;
+                            break;
+                        }
                     }
                 }
             }

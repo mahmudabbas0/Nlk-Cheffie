@@ -129,11 +129,13 @@ namespace Nlk_Cheffie_Print.Views
         {
             for (int i = 0; i < combo.Items.Count; i++)
             {
-                var kvp = (KeyValuePair<string, string>)combo.Items[i];
-                if (kvp.Key == val)
+                if (combo.Items[i] is KeyValuePair<string, string> kvp)
                 {
-                    combo.SelectedIndex = i;
-                    return;
+                    if (kvp.Key == val)
+                    {
+                        combo.SelectedIndex = i;
+                        return;
+                    }
                 }
             }
             if (combo.Items.Count > 0) combo.SelectedIndex = 0;
@@ -143,11 +145,13 @@ namespace Nlk_Cheffie_Print.Views
         {
             for (int i = 0; i < combo.Items.Count; i++)
             {
-                var kvp = (KeyValuePair<bool, string>)combo.Items[i];
-                if (kvp.Key == val)
+                if (combo.Items[i] is KeyValuePair<bool, string> kvp)
                 {
-                    combo.SelectedIndex = i;
-                    return;
+                    if (kvp.Key == val)
+                    {
+                        combo.SelectedIndex = i;
+                        return;
+                    }
                 }
             }
             if (combo.Items.Count > 0) combo.SelectedIndex = 0;

@@ -255,7 +255,7 @@ namespace Nlk_Cheffie_Print.Core
             }
 
             // Draw selected text
-            string text = SelectedItem != null ? GetItemText(SelectedItem) : Text;
+            string text = (SelectedItem != null ? GetItemText(SelectedItem) : Text) ?? "";
             var textRect = new Rectangle(5, 0, rect.Width - arrowWidth - 8, rect.Height);
             var flags = TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.Left;
             TextRenderer.DrawText(g, text, Font, textRect, ForeColor, flags);
@@ -274,7 +274,7 @@ namespace Nlk_Cheffie_Print.Core
                 e.Graphics.FillRectangle(brush, e.Bounds);
             }
 
-            string text = GetItemText(Items[e.Index]);
+            string text = GetItemText(Items[e.Index]) ?? "";
             var flags = TextFormatFlags.VerticalCenter | TextFormatFlags.Left;
             TextRenderer.DrawText(e.Graphics, text, e.Font ?? Font, e.Bounds, fg, flags);
         }
@@ -397,8 +397,7 @@ namespace Nlk_Cheffie_Print.Core
                 StartPosition = FormStartPosition.Manual,
                 ShowInTaskbar = false,
                 KeyPreview = true,
-                BackColor = Color.FromArgb(44, 44, 46), // matches theme border/accent
-                Padding = new Padding(8)
+                BackColor = Color.FromArgb(44, 44, 46) // matches theme border/accent
             };
 
             var calendar = new MonthCalendar
@@ -406,15 +405,28 @@ namespace Nlk_Cheffie_Print.Core
                 MaxSelectionCount = 1,
                 SelectionStart = _value,
                 SelectionEnd = _value,
-                Dock = DockStyle.Fill
+                ShowToday = false,
+                ShowTodayCircle = false,
+                Location = new Point(12, 8)
             };
-            
-            popup.Controls.Add(calendar);
             
             // Force native handle creation so SingleMonthSize returns accurate, DPI-scaled measurements
             var forceHandle = calendar.Handle;
+            calendar.Size = calendar.SingleMonthSize; // Keep it exactly at native size so text and numbers align perfectly!
+
+            // Create a white panel to seamlessy surround the calendar and act as margins/padding
+            var container = new Panel
+            {
+                BackColor = Color.White,
+                Location = new Point(4, 4),
+                Size = new Size(calendar.Width + 24, calendar.Height + 16)
+            };
             
-            popup.Size = new Size(calendar.SingleMonthSize.Width + 16, calendar.SingleMonthSize.Height + 16);
+            container.Controls.Add(calendar);
+            popup.Controls.Add(container);
+            
+            // Set popup size to hold the container plus 4px outer dark border
+            popup.Size = new Size(container.Width + 8, container.Height + 8);
 
             Point screenPt = this.PointToScreen(new Point(0, this.Height));
             var screen = Screen.FromControl(this).WorkingArea;
@@ -661,6 +673,7 @@ namespace Nlk_Cheffie_Print.Core
             if (index >= Items.Count) index = Items.Count - 1;
             if (index < 0) return;
 
+            if (e.Data == null) return;
             object? draggedItem = null;
             foreach (var format in e.Data.GetFormats())
             {
