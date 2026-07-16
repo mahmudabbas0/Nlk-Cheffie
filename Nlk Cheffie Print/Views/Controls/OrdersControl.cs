@@ -839,16 +839,19 @@ namespace Nlk_Cheffie_Print.Views.Controls
                         int x = e.CellBounds.X + 8;
                         int y = e.CellBounds.Y + (cellHeight - textHeight) / 2;
 
-                        // Draw first line (Method)
-                        using (var brushMethod = new SolidBrush(methodColor))
+                        if (e.Graphics != null)
                         {
-                            e.Graphics.DrawString(methodStr, ThemeManager.FontBodyBold, brushMethod, x, y);
-                        }
+                            // Draw first line (Method)
+                            using (var brushMethod = new SolidBrush(methodColor))
+                            {
+                                e.Graphics.DrawString(methodStr, ThemeManager.FontBodyBold, brushMethod, x, y);
+                            }
 
-                        // Draw second line (Status)
-                        using (var brushStatus = new SolidBrush(statusColor))
-                        {
-                            e.Graphics.DrawString(statusStr, ThemeManager.FontBody, brushStatus, x, y + 16);
+                            // Draw second line (Status)
+                            using (var brushStatus = new SolidBrush(statusColor))
+                            {
+                                e.Graphics.DrawString(statusStr, ThemeManager.FontBody, brushStatus, x, y + 16);
+                            }
                         }
                     }
 
@@ -876,25 +879,28 @@ namespace Nlk_Cheffie_Print.Views.Controls
                     else
                         btnBg = ThemeManager.ColorCard;
 
-                    using (var brushBg = new SolidBrush(btnBg))
+                    if (e.Graphics != null)
                     {
-                        e.Graphics.FillRectangle(brushBg, btnBounds);
-                    }
+                        using (var brushBg = new SolidBrush(btnBg))
+                        {
+                            e.Graphics.FillRectangle(brushBg, btnBounds);
+                        }
 
-                    // Draw thin border
-                    using (var penBorder = new Pen(Color.FromArgb(40, Color.White), 1))
-                    {
-                        e.Graphics.DrawRectangle(penBorder, btnBounds);
-                    }
+                        // Draw thin border
+                        using (var penBorder = new Pen(Color.FromArgb(40, Color.White), 1))
+                        {
+                            e.Graphics.DrawRectangle(penBorder, btnBounds);
+                        }
 
-                    // Draw "Detay" button text
-                    string btnText = LocalizationService.T("orders.detail.dialog_title", "Detay");
-                    using (var brushText = new SolidBrush(isHovered ? Color.White : ThemeManager.ColorAccent))
-                    {
-                        var size = e.Graphics.MeasureString(btnText, ThemeManager.FontBodyBold);
-                        float tx = btnBounds.X + (btnBounds.Width - size.Width) / 2;
-                        float ty = btnBounds.Y + (btnBounds.Height - size.Height) / 2;
-                        e.Graphics.DrawString(btnText, ThemeManager.FontBodyBold, brushText, tx, ty);
+                        // Draw "Detay" button text
+                        string btnText = LocalizationService.T("orders.detail.dialog_title", "Detay");
+                        using (var brushText = new SolidBrush(isHovered ? Color.White : ThemeManager.ColorAccent))
+                        {
+                            var size = e.Graphics.MeasureString(btnText, ThemeManager.FontBodyBold);
+                            float tx = btnBounds.X + (btnBounds.Width - size.Width) / 2;
+                            float ty = btnBounds.Y + (btnBounds.Height - size.Height) / 2;
+                            e.Graphics.DrawString(btnText, ThemeManager.FontBodyBold, brushText, tx, ty);
+                        }
                     }
 
                     e.Handled = true;

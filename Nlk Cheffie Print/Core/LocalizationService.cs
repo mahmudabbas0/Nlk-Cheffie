@@ -34,6 +34,29 @@ namespace Nlk_Cheffie_Print.Core
             LoadTranslations(defaultLang);
         }
 
+        private static Dictionary<string, object> _fallbackTranslations = new Dictionary<string, object>();
+
+        private static void LoadFallbackTranslations()
+        {
+            try
+            {
+                string localePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Locales", "tr.json");
+                if (File.Exists(localePath))
+                {
+                    string json = File.ReadAllText(localePath);
+                    var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+                    if (dict != null)
+                    {
+                        _fallbackTranslations = dict;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to load fallback translations: {ex.Message}");
+            }
+        }
+
         private static void LoadTranslations(string langCode)
         {
             try
@@ -66,14 +89,12 @@ namespace Nlk_Cheffie_Print.Core
             _translations = new Dictionary<string, object>();
         }
 
-        public static string T(string key, string defaultValue = "")
+        private static string ResolveKey(Dictionary<string, object> translations, string key)
         {
-            if (string.IsNullOrEmpty(key)) return defaultValue;
-
             try
             {
                 string[] parts = key.Split('.');
-                object current = _translations;
+                object current = translations;
 
                 for (int i = 0; i < parts.Length; i++)
                 {
@@ -85,7 +106,7 @@ namespace Nlk_Cheffie_Print.Core
                         }
                         else
                         {
-                            return string.IsNullOrEmpty(defaultValue) ? key : defaultValue;
+                            return "";
                         }
                     }
                     else if (current is JsonElement element)
@@ -98,17 +119,17 @@ namespace Nlk_Cheffie_Print.Core
                             }
                             else
                             {
-                                return string.IsNullOrEmpty(defaultValue) ? key : defaultValue;
+                                return "";
                             }
                         }
                         else
                         {
-                            return string.IsNullOrEmpty(defaultValue) ? key : defaultValue;
+                            return "";
                         }
                     }
                     else
                     {
-                        return string.IsNullOrEmpty(defaultValue) ? key : defaultValue;
+                        return "";
                     }
                 }
 
@@ -116,17 +137,37 @@ namespace Nlk_Cheffie_Print.Core
                 {
                     if (jsonEl.ValueKind == JsonValueKind.String)
                     {
-                        return jsonEl.GetString() ?? defaultValue;
+                        return jsonEl.GetString() ?? "";
                     }
                     return jsonEl.ToString();
                 }
 
-                return current?.ToString() ?? (string.IsNullOrEmpty(defaultValue) ? key : defaultValue);
+                return current?.ToString() ?? "";
             }
             catch
             {
-                return string.IsNullOrEmpty(defaultValue) ? key : defaultValue;
+                return "";
             }
+        }
+
+        public static string T(string key, string defaultValue = "")
+        {
+            if (string.IsNullOrEmpty(key)) return defaultValue;
+
+            string val = ResolveKey(_translations, key);
+            if (string.IsNullOrEmpty(val))
+            {
+                if (_fallbackTranslations.Count == 0)
+                {
+                    LoadFallbackTranslations();
+                }
+                string fallbackVal = ResolveKey(_fallbackTranslations, key);
+                if (!string.IsNullOrEmpty(fallbackVal))
+                {
+                    return fallbackVal;
+                }
+            }
+            return string.IsNullOrEmpty(val) ? (string.IsNullOrEmpty(defaultValue) ? key : defaultValue) : val;
         }
 
         public static List<KeyValuePair<string, string>> GetAvailableLanguages()

@@ -35,6 +35,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
             this.lstPrinters = new System.Windows.Forms.ListBox();
             this.pnlPrinterActions = new System.Windows.Forms.Panel();
             this.btnRemove = new System.Windows.Forms.Button();
+            this.btnProfile = new System.Windows.Forms.Button();
             this.btnAddIp = new System.Windows.Forms.Button();
             this.btnScanUsb = new System.Windows.Forms.Button();
             this.pnlRolesCard = new System.Windows.Forms.Panel();
@@ -114,6 +115,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
             // pnlPrinterActions
             // 
             this.pnlPrinterActions.Controls.Add(this.btnRemove);
+            this.pnlPrinterActions.Controls.Add(this.btnProfile);
             this.pnlPrinterActions.Controls.Add(this.btnAddIp);
             this.pnlPrinterActions.Controls.Add(this.btnScanUsb);
             this.pnlPrinterActions.Dock = System.Windows.Forms.DockStyle.Top;
@@ -132,6 +134,17 @@ namespace Nlk_Cheffie_Print.Views.Controls
             this.btnRemove.Text = " Sil";
             this.btnRemove.UseVisualStyleBackColor = true;
             this.btnRemove.Click += new System.EventHandler(this.btnRemove_Click);
+            // 
+            // btnProfile
+            // 
+            this.btnProfile.Location = new System.Drawing.Point(345, 8);
+            this.btnProfile.Name = "btnProfile";
+            this.btnProfile.Size = new System.Drawing.Size(145, 30);
+            this.btnProfile.TabIndex = 3;
+            this.btnProfile.Tag = "Secondary";
+            this.btnProfile.Text = "Yazıcı Profili";
+            this.btnProfile.UseVisualStyleBackColor = true;
+            this.btnProfile.Click += new System.EventHandler(this.btnProfile_Click);
             // 
             // btnAddIp
             // 
@@ -320,6 +333,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
         private System.Windows.Forms.Panel pnlPrintersCard;
         private System.Windows.Forms.Panel pnlPrinterActions;
         private System.Windows.Forms.Button btnRemove;
+        private System.Windows.Forms.Button btnProfile;
         private System.Windows.Forms.Button btnAddIp;
         private System.Windows.Forms.Button btnScanUsb;
         private System.Windows.Forms.ListBox lstPrinters;

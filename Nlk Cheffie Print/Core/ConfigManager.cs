@@ -70,6 +70,10 @@ namespace Nlk_Cheffie_Print.Core
 
         [JsonPropertyName("port")]
         public int Port { get; set; } = 9100;
+
+        // Empty values are resolved from the printer name for backward compatibility.
+        [JsonPropertyName("profile")]
+        public string Profile { get; set; } = "";
         
         [JsonPropertyName("label")]
         public string Label => Type == "network" ? $"{Name} ({Id})" : Name;

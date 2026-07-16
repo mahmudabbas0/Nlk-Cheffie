@@ -272,6 +272,11 @@ namespace Nlk_Cheffie_Print.Views
 
         private void TranslateUI()
         {
+            // Apply RightToLeft layout dynamically for Arabic
+            bool isRtl = LocalizationService.CurrentLanguage.ToLower() == "ar";
+            this.RightToLeft = isRtl ? RightToLeft.Yes : RightToLeft.No;
+            this.RightToLeftLayout = isRtl;
+
             this.Text = LocalizationService.T("tray.tooltip");
             lblBrand.Text = "CHEFFIE POS BRIDGE";
             
@@ -463,7 +468,7 @@ namespace Nlk_Cheffie_Print.Views
             if (!_isWsConnected)
             {
                 iconColor = Color.FromArgb(244, 67, 54); // Red
-                statusText = LocalizationService.T("tray.status_disconnected", "Durum: Bağlı Değil");
+                statusText = $"{LocalizationService.T("tray.status", "Durum: ")}{LocalizationService.T("tray.status_disconnected", "Bağlı Değil")}";
                 _statusMenuItem.ToolTipText = null;
             }
             else if (!string.IsNullOrEmpty(_lastPrinterError))
@@ -480,7 +485,7 @@ namespace Nlk_Cheffie_Print.Views
             else
             {
                 iconColor = Color.FromArgb(76, 175, 80); // Green
-                statusText = LocalizationService.T("tray.status_connected", "Durum: Bağlı");
+                statusText = $"{LocalizationService.T("tray.status", "Durum: ")}{LocalizationService.T("tray.status_connected", "Bağlı")}";
                 _statusMenuItem.ToolTipText = null;
             }
 

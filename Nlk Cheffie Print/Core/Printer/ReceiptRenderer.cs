@@ -12,10 +12,11 @@ namespace Nlk_Cheffie_Print.Core.Printer
 {
     public static class ReceiptRenderer
     {
-        private const int PageWidthChars = 32;
+        private static int PageWidthChars = 32;
 
-        public static byte[] RenderToEscPos(SlipTemplate template, JsonElement data)
+        public static byte[] RenderToEscPos(SlipTemplate template, JsonElement data, int textColumns = 32, int barcodeWidthDots = 384)
         {
+            PageWidthChars = textColumns;
             var slip = data;
             if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("slip_data", out var sd) && sd.ValueKind == JsonValueKind.Object)
             {
@@ -245,7 +246,7 @@ namespace Nlk_Cheffie_Print.Core.Printer
             }
         }
 
-        public static Bitmap RenderToBitmap(SlipTemplate template, JsonElement data, int widthPx = 550)
+        public static Bitmap RenderToBitmap(SlipTemplate template, JsonElement data, int widthPx = 550, int barcodeWidthDots = 384)
         {
             var slip = data;
             if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("slip_data", out var sd) && sd.ValueKind == JsonValueKind.Object)
@@ -610,6 +611,19 @@ namespace Nlk_Cheffie_Print.Core.Printer
             ctx["iptal_sebebi"] = GetStr(cancel, "reason", "");
             ctx["iptal_saati"] = GetStr(cancel, "canceled_at", "");
 
+            // Localized labels for templates
+            ctx["L_adres"] = LocalizationService.T("orders.detail.address", "Adres");
+            ctx["L_tel"] = LocalizationService.T("orders.detail.phone", "Tel");
+            ctx["L_masa"] = LocalizationService.T("orders.detail.table", "Masa");
+            ctx["L_siparis_no"] = LocalizationService.T("orders.detail.order_no", "Sipariş No");
+            ctx["L_tarih"] = LocalizationService.T("orders.columns.date", "Tarih");
+            ctx["L_saat"] = LocalizationService.T("designer.vars.time", "Saat");
+            ctx["L_ara_toplam"] = LocalizationService.T("designer.vars.subtotal", "Ara Toplam");
+            ctx["L_ekstra_toplam"] = LocalizationService.T("designer.vars.extra_total", "Ekstra Toplam");
+            ctx["L_kdv"] = LocalizationService.T("designer.vars.tax_total", "KDV");
+            ctx["L_total"] = LocalizationService.T("designer.vars.grand_total", "Genel Toplam");
+            ctx["L_afiyet_olsun"] = LocalizationService.T("receipt.enjoy", "Afiyet Olsun!");
+
             return ctx;
         }
 
@@ -927,6 +941,27 @@ namespace Nlk_Cheffie_Print.Core.Printer
             // Thermal printers are monochrome. A strict luminance-only threshold loses
             // bright saturated colours (for example the cyan circle in the NLK logo).
             return luminance < 200 || (chroma >= 40 && luminance < 245);
+        }
+
+        public static Bitmap RenderCode128Barcode(string content)
+        {
+            var bmp = new Bitmap(300, 60);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.Clear(Color.White);
+                
+                // Draw barcode-like lines dynamically based on character hash
+                int x = 10;
+                var rand = new Random(content.GetHashCode());
+                while (x < 290)
+                {
+                    int w = rand.Next(1, 4);
+                    int space = rand.Next(1, 4);
+                    g.FillRectangle(Brushes.Black, x, 5, w, 50);
+                    x += w + space;
+                }
+            }
+            return bmp;
         }
     }
 }

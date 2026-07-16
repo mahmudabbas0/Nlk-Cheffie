@@ -105,11 +105,20 @@ namespace Nlk_Cheffie_Print.Core.Workers
 
                 if (targetPrinter == null && !dryRun)
                 {
-                    string err = $"{job.Role.ToUpper()} rolü için tanımlı yazıcı bulunamadı.";
+                    string roleLabel = job.Role.ToLower() switch
+                    {
+                        "kitchen" => LocalizationService.T("settings.kitchen", "Mutfak"),
+                        "cashier" => LocalizationService.T("settings.cashier", "Kasa"),
+                        "courier" => LocalizationService.T("settings.courier", "Kurye"),
+                        _ => job.Role
+                    };
+                    string err = LocalizationService.T("printers.not_selected", "{label}: Henüz seçilmedi. Yazıcılar sekmesinden bir yazıcı atayın.").Replace("{label}", roleLabel);
                     AppendLog($"[ERROR] {err}");
                     JobProcessed?.Invoke(err, true);
                     return;
                 }
+
+                PrinterProfile profile = PrinterProfileResolver.Resolve(targetPrinter);
 
                 AppendLog($"[RENDERING] Role={job.Role.ToUpper()} JobId={job.JobId}");
 
@@ -120,21 +129,22 @@ namespace Nlk_Cheffie_Print.Core.Workers
                 {
                     // Dry run representation
                     AppendLog($"[DRY RUN] ({job.Role.ToUpper()}) Printing Job {job.JobId}...");
-                    using (var bmp = ReceiptRenderer.RenderToBitmap(template, job.Data))
+                    using (var bmp = ReceiptRenderer.RenderToBitmap(template, job.Data, profile.RasterWidthDots, profile.BarcodeWidthDots))
                     {
                         AppendLog($"Generated bitmap size: {bmp.Width}x{bmp.Height}");
                     }
                     AppendLog("-------------------------");
                     
-                    JobProcessed?.Invoke($"({job.Role.ToUpper()}) Deneme baskısı başarılı.", false);
+                    string dryRunLabel = LocalizationService.T("printers.dry_run_suffix", " - Deneme modunda (gerçek yazdırma kapalı).").TrimStart(' ', '-');
+                    JobProcessed?.Invoke($"({job.Role.ToUpper()}) {dryRunLabel}", false);
                 }
                 else
                 {
-                    AppendLog($"[SPOOLER SUBMITTED] Spooling to {targetPrinter!.Name} ({targetPrinter.Type})");
+                    AppendLog($"[SPOOLER SUBMITTED] Spooling to {targetPrinter!.Name} ({targetPrinter.Type}, {profile.DisplayName})");
 
-                    if (graphicMode && targetPrinter.Type.ToUpper() != "WIN32_GDI")
+                    if (graphicMode && !profile.UsesWindowsGdi)
                     {
-                        using var bitmap = ReceiptRenderer.RenderToBitmap(template, job.Data);
+                        using var bitmap = ReceiptRenderer.RenderToBitmap(template, job.Data, profile.RasterWidthDots, profile.BarcodeWidthDots);
                         byte[] rasterBytes = ReceiptRenderer.RenderBitmapToEscPos(bitmap);
 
                         if (targetPrinter.Type.ToLower() == "usb" || targetPrinter.Type.ToLower() == "win32")
@@ -146,10 +156,10 @@ namespace Nlk_Cheffie_Print.Core.Workers
                             EscPosDriver.SendRawToIP(targetPrinter.Id, targetPrinter.Port, rasterBytes);
                         }
                     }
-                    else if (graphicMode || targetPrinter.Type.ToUpper() == "WIN32_GDI")
+                    else if (graphicMode || profile.UsesWindowsGdi)
                     {
                         // Render to bitmap and draw via GDI
-                        using (var bmp = ReceiptRenderer.RenderToBitmap(template, job.Data))
+                        using (var bmp = ReceiptRenderer.RenderToBitmap(template, job.Data, profile.RasterWidthDots, profile.BarcodeWidthDots))
                         {
                             EscPosDriver.SendBitmapToWin32GDI(targetPrinter.Name, bmp);
                         }
@@ -157,7 +167,7 @@ namespace Nlk_Cheffie_Print.Core.Workers
                     else
                     {
                         // ESC/POS raw bytes
-                        byte[] rawBytes = ReceiptRenderer.RenderToEscPos(template, job.Data);
+                        byte[] rawBytes = ReceiptRenderer.RenderToEscPos(template, job.Data, profile.TextColumns, profile.BarcodeWidthDots);
 
                         if (targetPrinter.Type.ToLower() == "usb" || targetPrinter.Type.ToLower() == "win32")
                         {
@@ -178,7 +188,7 @@ namespace Nlk_Cheffie_Print.Core.Workers
                     }
 
                     AppendLog($"[SUCCESS] JobId={job.JobId}");
-                    JobProcessed?.Invoke($"({job.Role.ToUpper()}) Yazdırma başarılı.", false);
+                    JobProcessed?.Invoke($"({job.Role.ToUpper()}) {LocalizationService.T("printers.print_success", "Yazdırma başarılı.")}", false);
                 }
 
                 // 3. Mark duplicate shield as processed only on successful print
@@ -197,7 +207,8 @@ namespace Nlk_Cheffie_Print.Core.Workers
             catch (Exception ex)
             {
                 AppendLog($"[ERROR] Role={job.Role}, JobId={job.JobId}: {ex.Message}");
-                JobProcessed?.Invoke($"Yazdırma Hatası ({job.Role.ToUpper()}): {ex.Message}", true);
+                string errText = LocalizationService.T("printers.error_title", "Yazıcı Hatası");
+                JobProcessed?.Invoke($"{errText} ({job.Role.ToUpper()}): {ex.Message}", true);
             }
         }
 

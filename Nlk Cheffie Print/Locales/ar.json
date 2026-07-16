@@ -23,6 +23,8 @@
     "error_conn": "تعذر الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت.",
     "error_timeout": "انتهت مهلة الاتصال بالخادم. تحقق من الإنترنت وحاول مجدداً.",
     "error_general": "فشل تسجيل الدخول. يرجى التحقق من الرمز والرابط المكتوب.",
+    "success_title": "نجاح",
+    "success_msg": "تم تسجيل الدخول بنجاح، والاستماع للطلبات نشط.",
     "device_token": "رمز تعريف الجهاز (Token)",
     "device_token_placeholder": "أدخل رمز تعريف الجهاز هنا...",
     "browser_login": "تسجيل الدخول عبر المتصفح",
@@ -164,7 +166,7 @@
       "payment_type": "طريقة الدفع",
       "payment_status": "حالة الدفع",
       "note": "ملاحظة إضافية",
-      "total": "الإجمالي",
+      "total": "العنوان",
       "status": "حالة الطلب",
       "products": "المنتجات والأصناف",
       "btn_print": "طباعة الفاتورة",
@@ -173,7 +175,14 @@
       "no_items": "(لا توجد منتجات)",
       "extra_total": "إجمالي الإضافات (+{gap})",
       "remove": "بدون",
-      "extra": "إضافة"
+      "extra": "إضافة",
+      "reprint": "إعادة طباعة",
+      "show_preview": "معاينة الفاتورة المرئية",
+      "show_details": "معلومات تفصيلية",
+      "close": "إغلاق",
+      "pricing_header": "تفاصيل الأسعار",
+      "reprint_success_title": "طابور الطابعة",
+      "reprint_success_msg": "تمت إضافة الفاتورة لطابور إعادة الطباعة."
     }
   },
   "designer": {
@@ -327,6 +336,7 @@
     "tax_amount": "مبلغ الضريبة: {amount}",
     "extra_total": "إجمالي الإضافات: +{amount}",
     "extra_total_prefix": "إجمالي الإضافات",
+    "extras_total": "إجمالي الإضافات",
     "remove": "بدون",
     "extra": "إضافة",
     "note_prefix": "ملاحظة",
@@ -370,7 +380,10 @@
     "running_in_background": "البرنامج يعمل في الخلفية الآن.",
     "printer_status": "حالة الطابعات",
     "quit": "إغلاق تماماً",
-    "fatal_error_log": "توقف اتصال WebSocket. التفاصيل في logs/ws_fatal.log."
+    "fatal_error_log": "توقف اتصال WebSocket. التفاصيل في logs/ws_fatal.log.",
+    "printer_error": "خطأ في الطابعة",
+    "last_error": "آخر خطأ",
+    "no_error": "لا يوجد خطأ"
   },
   "qrm": {
     "dialogs": {
@@ -382,5 +395,13 @@
       "template_missing": "يرجى حفظ تصميم الفاتورة. للقيام بطباعة تجريبية، يجب حفظ القالب من مصمم الفواتير أولاً.",
       "print_queued": "تمت إضافة طلب طباعة {role} إلى طابور الطباعة بنجاح."
     }
+  },
+  "updater": {
+    "update_available_title": "يتوفر تحديث جديد",
+    "update_available_msg": "يتوفر تحديث جديد للتطبيق ({version}). هل تريد تنزيله الآن؟",
+    "no_update_title": "محدث",
+    "no_update_msg": "التطبيق محدث إلى آخر إصدار بالفعل.",
+    "checking": "جاري التحقق من وجود تحديثات...",
+    "error": "حدث خطأ أثناء التحقق من التحديثات."
   }
 }

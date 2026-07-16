@@ -159,7 +159,7 @@ namespace Nlk_Cheffie_Print.Views
             CreatedElement = new TemplateElement
             {
                 Type = "barcode",
-                Content = "{order_no}",
+                Content = "{siparis_no}",
                 Align = "center"
             };
             this.DialogResult = DialogResult.OK;

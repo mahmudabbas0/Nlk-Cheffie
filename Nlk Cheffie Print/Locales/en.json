@@ -23,6 +23,8 @@
     "error_conn": "Could not connect to server. Check your internet connection.",
     "error_timeout": "Server timed out. Check your internet connection.",
     "error_general": "Could not login. Check your credentials and try again.",
+    "success_title": "Success",
+    "success_msg": "Login successful, order listening active.",
     "device_token": "DEVICE TOKEN",
     "device_token_placeholder": "Enter your device token...",
     "browser_login": "Login with Browser",
@@ -173,7 +175,14 @@
       "no_items": "(No product info)",
       "extra_total": "Extra Total (+{gap})",
       "remove": "Remove",
-      "extra": "Extra"
+      "extra": "Extra",
+      "reprint": "Reprint",
+      "show_preview": "Visual Receipt Preview",
+      "show_details": "Detailed Information",
+      "close": "Close",
+      "pricing_header": "Pricing Details",
+      "reprint_success_title": "Printer Queue",
+      "reprint_success_msg": "Receipt added to reprint queue."
     }
   },
   "designer": {
@@ -327,7 +336,8 @@
     "tax_amount": "Tax Amount: {amount}",
     "extra_total": "Extra Total: +{amount}",
     "extra_total_prefix": "Extra Total",
-    "remove": "Removed",
+    "extras_total": "Extra Total",
+    "remove": "Remove",
     "extra": "Extra",
     "note_prefix": "Note",
     "waiter": "Waiter: {name}",
@@ -370,7 +380,10 @@
     "running_in_background": "Application is running in background.",
     "printer_status": "Printer Status",
     "quit": "Quit",
-    "fatal_error_log": "WebSocket connection stopped. Details in logs/ws_fatal.log."
+    "fatal_error_log": "WebSocket connection stopped. Details in logs/ws_fatal.log.",
+    "printer_error": "Printer Error",
+    "last_error": "Last Error",
+    "no_error": "No Error"
   },
   "qrm": {
     "dialogs": {
@@ -382,5 +395,13 @@
       "template_missing": "Please save your receipt design. For a test print, save the template from the Receipt Designer first.",
       "print_queued": "{role} print request has been queued."
     }
+  },
+  "updater": {
+    "update_available_title": "Update Available",
+    "update_available_msg": "A new update is available ({version}). Do you want to download it now?",
+    "no_update_title": "Up to Date",
+    "no_update_msg": "The application is already up to date.",
+    "checking": "Checking for updates...",
+    "error": "An error occurred while checking for updates."
   }
 }

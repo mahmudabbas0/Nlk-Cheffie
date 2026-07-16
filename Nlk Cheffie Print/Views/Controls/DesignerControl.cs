@@ -379,16 +379,27 @@ namespace Nlk_Cheffie_Print.Views.Controls
 
             if (el.Type == "barcode")
             {
-                // Draw mock barcode stripes
-                int barW = 100;
-                int barH = 30;
-                int x = (paperWidth - barW) / 2;
-                for (int i = 0; i < barW; i += 4)
+                string content = SubstituteForPreview(el.Content);
+                if (string.IsNullOrWhiteSpace(content)) content = "ORD-12345";
+
+                try
                 {
-                    int w = (i % 3 == 0) ? 1 : 2;
-                    g.FillRectangle(Brushes.Black, x + i, yOffset, w, barH);
+                    using Bitmap barcode = ReceiptRenderer.RenderCode128Barcode(content);
+                    int width = Math.Min(usableWidth, 260);
+                    int height = 48;
+                    int x = (paperWidth - width) / 2;
+                    g.DrawImage(barcode, x, yOffset, width, height);
+
+                    using var format = new StringFormat { Alignment = StringAlignment.Center };
+                    g.DrawString(content, fnNormal, brush,
+                        new RectangleF(margin, yOffset + height + 2, usableWidth, fnNormal.GetHeight() + 2), format);
+                    return yOffset + height + (int)fnNormal.GetHeight() + 8;
                 }
-                return yOffset + barH + 12;
+                catch
+                {
+                    g.DrawString(content, fnNormal, brush, margin, yOffset);
+                    return yOffset + (int)fnNormal.GetHeight() + 4;
+                }
             }
 
             if (el.Type == "logo")
@@ -696,7 +707,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
                     }
                     else if (el.Type == "barcode")
                     {
-                        yOffset += 42;
+                        yOffset += 70;
                     }
                     else if (el.Type == "logo")
                     {

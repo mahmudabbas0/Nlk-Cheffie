@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Windows.Forms;
 using Nlk_Cheffie_Print.Core;
+using Nlk_Cheffie_Print.Core.Printer;
 using Nlk_Cheffie_Print.Core.Workers;
 using Nlk_Cheffie_Print.Models;
 
@@ -44,10 +45,20 @@ namespace Nlk_Cheffie_Print.Views.Controls
             btnScanUsb.Text = LocalizationService.T("printers.scan_usb");
             btnAddIp.Text = LocalizationService.T("printers.add_ip");
             btnRemove.Text = LocalizationService.T("printers.remove");
+            btnProfile.Text = LocalizationService.CurrentLanguage == "tr" ? "Yazıcı Profili" : 
+                             (LocalizationService.CurrentLanguage == "de" ? "Druckerprofil" : 
+                             (LocalizationService.CurrentLanguage == "ar" ? "ملف تعريف الطابعة" : 
+                             (LocalizationService.CurrentLanguage == "es" ? "Perfil de impresora" : 
+                             (LocalizationService.CurrentLanguage == "fr" ? "Profil d'imprimante" : "Printer Profile"))));
 
-            btnTestKitchen.Text = LocalizationService.T("settings.kitchen").ToUpper() + " TEST";
-            btnTestCashier.Text = LocalizationService.T("settings.cashier").ToUpper() + " TEST";
-            btnTestCourier.Text = LocalizationService.T("settings.courier").ToUpper() + " TEST";
+            string testText = LocalizationService.CurrentLanguage == "tr" ? "TEST" : 
+                             (LocalizationService.CurrentLanguage == "ar" ? "تجربة" : 
+                             (LocalizationService.CurrentLanguage == "es" ? "PRUEBA" : 
+                             (LocalizationService.CurrentLanguage == "fr" ? "TEST" : "TEST")));
+
+            btnTestKitchen.Text = LocalizationService.T("settings.kitchen").ToUpper() + " " + testText;
+            btnTestCashier.Text = LocalizationService.T("settings.cashier").ToUpper() + " " + testText;
+            btnTestCourier.Text = LocalizationService.T("settings.courier").ToUpper() + " " + testText;
             btnSaveRoles.Text = LocalizationService.T("printers.save_roles_btn");
 
             RefreshPrinterCombos();
@@ -75,11 +86,13 @@ namespace Nlk_Cheffie_Print.Views.Controls
             var windowsPrinters = PrinterSettings.InstalledPrinters
                 .Cast<string>()
                 .OrderBy(name => name, StringComparer.CurrentCultureIgnoreCase)
-                .Select(name => new PrinterInfo
+                .Select(name =>
                 {
-                    Name = name,
-                    Id = name,
-                    Type = "win32"
+                    var existing = printers.FirstOrDefault(p => p.Id.Equals(name, StringComparison.OrdinalIgnoreCase)
+                        || p.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+                    var detected = new PrinterInfo { Name = name, Id = name, Type = "win32" };
+                    detected.Profile = existing?.Profile ?? PrinterProfileResolver.InferProfileId(detected);
+                    return detected;
                 })
                 .ToList();
 
@@ -110,9 +123,11 @@ namespace Nlk_Cheffie_Print.Views.Controls
             lstPrinters.Items.Clear();
             foreach (var printer in printers)
             {
-                lstPrinters.Items.Add(printer.Type.Equals("win32", StringComparison.OrdinalIgnoreCase)
+                var profile = PrinterProfileResolver.Resolve(printer);
+                string name = printer.Type.Equals("win32", StringComparison.OrdinalIgnoreCase)
                     ? printer.Name
-                    : $"{printer.Name} [{printer.Id}]");
+                    : $"{printer.Name} [{printer.Id}]";
+                lstPrinters.Items.Add($"{name} — {profile.DisplayName}");
             }
 
             RefreshPrinterCombos();
@@ -211,15 +226,53 @@ namespace Nlk_Cheffie_Print.Views.Controls
                     Name = $"{LocalizationService.T("printers.network_printer")} ({ip})",
                     Type = "network",
                     Id = ip.Trim(),
-                    Port = 9100
+                    Port = 9100,
+                    Profile = PrinterProfileResolver.EscPos80
                 };
 
                 ConfigManager.Current.Printers.Available.Add(newPrinter);
                 ConfigManager.Save();
 
-                lstPrinters.Items.Add($"{newPrinter.Name} [{newPrinter.Id}]");
+                lstPrinters.Items.Add($"{newPrinter.Name} [{newPrinter.Id}] — {PrinterProfileResolver.Resolve(newPrinter).DisplayName}");
                 RefreshPrinterCombos();
             }
+        }
+
+        private void btnProfile_Click(object sender, EventArgs e)
+        {
+            int index = lstPrinters.SelectedIndex;
+            if (index < 0 || index >= ConfigManager.Current.Printers.Available.Count)
+            {
+                MessageBox.Show("Lütfen önce listeden bir yazıcı seçin.", "Yazıcı Profili", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            var printer = ConfigManager.Current.Printers.Available[index];
+            var menu = new ContextMenuStrip();
+            AddProfileMenuItem(menu, printer, PrinterProfileResolver.EscPos58);
+            AddProfileMenuItem(menu, printer, PrinterProfileResolver.EscPos80);
+            if (printer.Type.Equals("win32", StringComparison.OrdinalIgnoreCase) || printer.Type.Equals("win32_gdi", StringComparison.OrdinalIgnoreCase))
+            {
+                AddProfileMenuItem(menu, printer, PrinterProfileResolver.WindowsGdi);
+            }
+            menu.Closed += (_, _) => menu.Dispose();
+            menu.Show(btnProfile, new Point(0, btnProfile.Height));
+        }
+
+        private void AddProfileMenuItem(ContextMenuStrip menu, PrinterInfo printer, string profileId)
+        {
+            var profile = PrinterProfileResolver.Resolve(new PrinterInfo { Profile = profileId });
+            var item = new ToolStripMenuItem(profile.DisplayName)
+            {
+                Checked = PrinterProfileResolver.Resolve(printer).Id == profileId
+            };
+            item.Click += (_, _) =>
+            {
+                printer.Profile = profileId;
+                ConfigManager.Save();
+                RefreshInstalledPrinters(showResult: false);
+            };
+            menu.Items.Add(item);
         }
 
         private void btnRemove_Click(object sender, EventArgs e)

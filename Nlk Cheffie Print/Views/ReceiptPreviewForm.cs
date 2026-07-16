@@ -60,6 +60,11 @@ namespace Nlk_Cheffie_Print.Views
             BackColor = ThemeManager.ColorBackground;
             ForeColor = ThemeManager.ColorText;
 
+            // Apply RightToLeft layout dynamically for Arabic
+            bool isRtl = LocalizationService.CurrentLanguage.ToLower() == "ar";
+            this.RightToLeft = isRtl ? RightToLeft.Yes : RightToLeft.No;
+            this.RightToLeftLayout = isRtl;
+
             // 1. Custom Title Bar
             pnlTitleBar = new Panel
             {
@@ -532,7 +537,7 @@ namespace Nlk_Cheffie_Print.Views
                 {
                     var lblCust = new Label
                     {
-                        Text = $" + Extra: {string.Join(", ", item.AddedCustomizations)}",
+                        Text = $" + {LocalizationService.T("receipt.extra", "Extra")}: {string.Join(", ", item.AddedCustomizations)}",
                         Font = ThemeManager.FontSmall,
                         ForeColor = ThemeManager.ColorTextMuted,
                         Location = new Point(55, currentY),
@@ -544,11 +549,27 @@ namespace Nlk_Cheffie_Print.Views
                     currentY += 18;
                 }
 
+                if (item.RemovedCustomizations != null && item.RemovedCustomizations.Count > 0)
+                {
+                    var lblRem = new Label
+                    {
+                        Text = $" - {LocalizationService.T("receipt.remove", "Çıkart")}: {string.Join(", ", item.RemovedCustomizations)}",
+                        Font = ThemeManager.FontSmall,
+                        ForeColor = ThemeManager.ColorTextMuted,
+                        Location = new Point(55, currentY),
+                        Size = new Size(320, 16),
+                        BackColor = Color.Transparent,
+                        AutoEllipsis = true
+                    };
+                    itemRow.Controls.Add(lblRem);
+                    currentY += 18;
+                }
+
                 if (!IsEmptyValue(item.Notes))
                 {
                     var lblNote = new Label
                     {
-                        Text = $" * Not: {item.Notes}",
+                        Text = $" * {LocalizationService.T("receipt.note_prefix", "Not")}: {item.Notes}",
                         Font = ThemeManager.FontSmall,
                         ForeColor = ThemeManager.ColorAccent,
                         Location = new Point(55, currentY),

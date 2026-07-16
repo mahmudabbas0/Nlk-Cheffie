@@ -175,7 +175,14 @@
       "no_items": "(Ürün bilgisi yok)",
       "extra_total": "Ekstra Toplam (+{gap})",
       "remove": "Çıkart",
-      "extra": "Ekstra"
+      "extra": "Ekstra",
+      "reprint": "Yeniden Yazdır",
+      "show_preview": "Görsel Fiş Önizleme",
+      "show_details": "Detaylı Bilgi",
+      "close": "Kapat",
+      "pricing_header": "Fiyatlandırma Detayları",
+      "reprint_success_title": "Yazıcı Kuyruğu",
+      "reprint_success_msg": "Fiş yeniden yazdırma kuyruğuna alındı."
     }
   },
   "designer": {
@@ -232,7 +239,7 @@
       "ready_customer_line": "Müşteri: ad / telefon",
       "ready_order_date_time_line": "Sipariş no + tarih + saat",
       "reset_confirm_title": "Varsayılana Döndür",
-      "reset_confirm_msg": "{role} fiş şablonu varsayılan tasarıma döndürülsün mü?",
+      "reset_confirm_msg": "{role} fiş şablonu varsayılan tasarıma döndürülsün mi?",
       "delete_confirm_title": "Öğeyi Sil",
       "delete_confirm_msg": "Seçili öğeyi silmek istediğinize emin misiniz?",
       "save_success_title": "Başarılı",
@@ -329,6 +336,7 @@
     "tax_amount": "KDV Tutar: {amount}",
     "extra_total": "Ekstra Toplam: +{amount}",
     "extra_total_prefix": "Ekstra Toplam",
+    "extras_total": "Ekstra Toplam",
     "remove": "Çıkart",
     "extra": "Ekstra",
     "note_prefix": "Not",
@@ -372,7 +380,10 @@
     "running_in_background": "Uygulama arka planda çalışıyor.",
     "printer_status": "Yazıcı Durumu",
     "quit": "Çıkış",
-    "fatal_error_log": "WebSocket bağlantısı durdu. Detaylar logs/ws_fatal.log dosyasında."
+    "fatal_error_log": "WebSocket bağlantısı durdu. Detaylar logs/ws_fatal.log dosyasında.",
+    "printer_error": "Yazıcı Hatası",
+    "last_error": "Son Hata",
+    "no_error": "Hata Yok"
   },
   "qrm": {
     "dialogs": {
@@ -384,5 +395,13 @@
       "template_missing": "Fiş tasarımınızı kaydedin. Test fişi için önce Fiş Tasarımı ekranından şablonu kaydetmelisiniz.",
       "print_queued": "{role} fişi yazdırma isteği kuyruğa eklendi."
     }
+  },
+  "updater": {
+    "update_available_title": "Güncelleme Mevcut",
+    "update_available_msg": "Yeni bir güncelleme mevcut ({version}). Şimdi indirmek istiyor musunuz?",
+    "no_update_title": "Güncel",
+    "no_update_msg": "Uygulama zaten güncel.",
+    "checking": "Güncellemeler kontrol ediliyor...",
+    "error": "Güncelleme kontrolü sırasında hata oluştu."
   }
 }

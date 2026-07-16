@@ -86,6 +86,11 @@ namespace Nlk_Cheffie_Print.Views
 
         private void TranslateUI()
         {
+            // Apply RightToLeft layout dynamically for Arabic
+            bool isRtl = LocalizationService.CurrentLanguage.ToLower() == "ar";
+            this.RightToLeft = isRtl ? RightToLeft.Yes : RightToLeft.No;
+            this.RightToLeftLayout = isRtl;
+
             this.Text = LocalizationService.T("tray.tooltip") + " - " + LocalizationService.T("tabs.login");
             lblTitle.Text = LocalizationService.T("login.cloud_connection");
             btnBrowserLogin.Text = LocalizationService.T("login.browser_login");

@@ -51,12 +51,12 @@ namespace Nlk_Cheffie_Print.Core.Printer
                 {
                     if (el.Content == "{restoran_adres}")
                     {
-                        el.Content = "Adres: {restoran_adres}";
+                        el.Content = "{L_adres}: {restoran_adres}";
                         modified = true;
                     }
                     else if (el.Content == "{restoran_telefon}")
                     {
-                        el.Content = "Tel: {restoran_telefon}";
+                        el.Content = "{L_tel}: {restoran_telefon}";
                         modified = true;
                     }
                 }
@@ -73,7 +73,7 @@ namespace Nlk_Cheffie_Print.Core.Printer
             {
                 foreach (var el in template.Footer)
                 {
-                    if (el.Content != null && (el.Content.Contains("{toplam_tutar}") || el.Content.Contains("{genel_toplam}") || el.Content.Contains("{ara_toplam}")))
+                    if (el.Content != null && (el.Content.Contains("{toplam_tutar}") || el.Content.Contains("{genel_toplam}") || el.Content.Contains("{ara_toplam}") || el.Content.Contains("{L_total}")))
                     {
                         hasTotals = true;
                         break;
@@ -87,19 +87,19 @@ namespace Nlk_Cheffie_Print.Core.Printer
                 {
                     foreach (var el in template.Footer)
                     {
-                        if (el.Type == "separator" || (el.Content != null && (el.Content.Contains("Afiyet") || el.Content.Contains("Powered"))))
+                        if (el.Type == "separator" || (el.Content != null && (el.Content.Contains("Afiyet") || el.Content.Contains("Powered") || el.Content.Contains("L_afiyet_olsun"))))
                             continue;
                         cleanFooter.Add(el);
                     }
                 }
                 
                 cleanFooter.Add(new TemplateElement { Type = "separator" });
-                cleanFooter.Add(new TemplateElement { Type = "text", Content = "Ara Toplam: {ara_toplam} TL", Align = "left" });
-                cleanFooter.Add(new TemplateElement { Type = "text", Content = "Ekstra Toplam: {ekstra_toplam} TL", Align = "left" });
-                cleanFooter.Add(new TemplateElement { Type = "text", Content = "KDV: {kdv_toplam} TL", Align = "left" });
-                cleanFooter.Add(new TemplateElement { Type = "text", Content = "Genel Toplam: {toplam_tutar} TL", Font = "B", Align = "left" });
+                cleanFooter.Add(new TemplateElement { Type = "text", Content = "{L_ara_toplam}: {ara_toplam} TL", Align = "left" });
+                cleanFooter.Add(new TemplateElement { Type = "text", Content = "{L_ekstra_toplam}: {ekstra_toplam} TL", Align = "left" });
+                cleanFooter.Add(new TemplateElement { Type = "text", Content = "{L_kdv}: {kdv_toplam} TL", Align = "left" });
+                cleanFooter.Add(new TemplateElement { Type = "text", Content = "{L_total}: {toplam_tutar} TL", Font = "B", Align = "left" });
                 cleanFooter.Add(new TemplateElement { Type = "separator" });
-                cleanFooter.Add(new TemplateElement { Type = "text", Content = "Afiyet Olsun!", Align = "center" });
+                cleanFooter.Add(new TemplateElement { Type = "text", Content = "{L_afiyet_olsun}", Align = "center" });
                 cleanFooter.Add(new TemplateElement { Type = "separator" });
                 cleanFooter.Add(new TemplateElement { Type = "text", Content = "Powered by NlkCheffie", Align = "center" });
 
@@ -126,24 +126,24 @@ namespace Nlk_Cheffie_Print.Core.Printer
             // Rich default template matching modern restaurant receipts
             template.Header.Add(new TemplateElement { Type = "logo", Align = "center" });
             template.Header.Add(new TemplateElement { Type = "text", Content = "{restoran_adi}", Font = "B", Align = "center" });
-            template.Header.Add(new TemplateElement { Type = "text", Content = "Adres: {restoran_adres}", Align = "center" });
-            template.Header.Add(new TemplateElement { Type = "text", Content = "Tel: {restoran_telefon}", Align = "center" });
+            template.Header.Add(new TemplateElement { Type = "text", Content = "{L_adres}: {restoran_adres}", Align = "center" });
+            template.Header.Add(new TemplateElement { Type = "text", Content = "{L_tel}: {restoran_telefon}", Align = "center" });
             template.Header.Add(new TemplateElement { Type = "separator" });
 
-            template.Header.Add(new TemplateElement { Type = "text", Content = "Masa: {masa_adi}", Font = "B", Align = "left" });
-            template.Header.Add(new TemplateElement { Type = "text", Content = "Sipariş No: #{siparis_no}", Align = "left" });
-            template.Header.Add(new TemplateElement { Type = "text", Content = "Tarih: {tarih}   Saat: {saat}", Align = "left" });
+            template.Header.Add(new TemplateElement { Type = "text", Content = "{L_masa}: {masa_adi}", Font = "B", Align = "left" });
+            template.Header.Add(new TemplateElement { Type = "text", Content = "{L_siparis_no}: #{siparis_no}", Align = "left" });
+            template.Header.Add(new TemplateElement { Type = "text", Content = "{L_tarih}: {tarih}   {L_saat}: {saat}", Align = "left" });
             template.Header.Add(new TemplateElement { Type = "separator" });
 
             template.Body.Add(new TemplateElement { Type = "items", Align = "left", ShowPrice = true, ShowCustomizations = true, ShowNotes = true });
 
             template.Footer.Add(new TemplateElement { Type = "separator" });
-            template.Footer.Add(new TemplateElement { Type = "text", Content = "Ara Toplam: {ara_toplam} TL", Align = "left" });
-            template.Footer.Add(new TemplateElement { Type = "text", Content = "Ekstra Toplam: {ekstra_toplam} TL", Align = "left" });
-            template.Footer.Add(new TemplateElement { Type = "text", Content = "KDV: {kdv_toplam} TL", Align = "left" });
-            template.Footer.Add(new TemplateElement { Type = "text", Content = "Genel Toplam: {toplam_tutar} TL", Font = "B", Align = "left" });
+            template.Footer.Add(new TemplateElement { Type = "text", Content = "{L_ara_toplam}: {ara_toplam} TL", Align = "left" });
+            template.Footer.Add(new TemplateElement { Type = "text", Content = "{L_ekstra_toplam}: {ekstra_toplam} TL", Align = "left" });
+            template.Footer.Add(new TemplateElement { Type = "text", Content = "{L_kdv}: {kdv_toplam} TL", Align = "left" });
+            template.Footer.Add(new TemplateElement { Type = "text", Content = "{L_total}: {toplam_tutar} TL", Font = "B", Align = "left" });
             template.Footer.Add(new TemplateElement { Type = "separator" });
-            template.Footer.Add(new TemplateElement { Type = "text", Content = "Afiyet Olsun!", Align = "center" });
+            template.Footer.Add(new TemplateElement { Type = "text", Content = "{L_afiyet_olsun}", Align = "center" });
             template.Footer.Add(new TemplateElement { Type = "separator" });
             template.Footer.Add(new TemplateElement { Type = "text", Content = "Powered by NlkCheffie", Align = "center" });
 
