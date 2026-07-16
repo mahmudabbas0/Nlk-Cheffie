@@ -49,6 +49,12 @@ namespace Nlk_Cheffie_Print.Core
 
         [JsonPropertyName("restaurant_phone")]
         public string RestaurantPhone { get; set; } = "";
+
+        [JsonPropertyName("codepage")]
+        public int CodePage { get; set; } = 61;
+
+        [JsonPropertyName("encoding_name")]
+        public string EncodingName { get; set; } = "ibm857";
     }
 
     public class PrinterInfo

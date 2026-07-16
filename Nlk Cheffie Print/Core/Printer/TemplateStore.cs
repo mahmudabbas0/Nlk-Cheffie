@@ -44,6 +44,28 @@ namespace Nlk_Cheffie_Print.Core.Printer
             }
 
             // Smart migration / auto-fix:
+            bool modified = false;
+            if (template.Header != null)
+            {
+                foreach (var el in template.Header)
+                {
+                    if (el.Content == "{restoran_adres}")
+                    {
+                        el.Content = "Adres: {restoran_adres}";
+                        modified = true;
+                    }
+                    else if (el.Content == "{restoran_telefon}")
+                    {
+                        el.Content = "Tel: {restoran_telefon}";
+                        modified = true;
+                    }
+                }
+            }
+            if (modified)
+            {
+                Save(role, template);
+            }
+
             // If the template does not contain Ara Toplam or Genel Toplam in its footer,
             // automatically append the modern totals to make sure they are always printed!
             bool hasTotals = false;
@@ -104,8 +126,8 @@ namespace Nlk_Cheffie_Print.Core.Printer
             // Rich default template matching modern restaurant receipts
             template.Header.Add(new TemplateElement { Type = "logo", Align = "center" });
             template.Header.Add(new TemplateElement { Type = "text", Content = "{restoran_adi}", Font = "B", Align = "center" });
-            template.Header.Add(new TemplateElement { Type = "text", Content = "{restoran_adres}", Align = "center" });
-            template.Header.Add(new TemplateElement { Type = "text", Content = "{restoran_telefon}", Align = "center" });
+            template.Header.Add(new TemplateElement { Type = "text", Content = "Adres: {restoran_adres}", Align = "center" });
+            template.Header.Add(new TemplateElement { Type = "text", Content = "Tel: {restoran_telefon}", Align = "center" });
             template.Header.Add(new TemplateElement { Type = "separator" });
 
             template.Header.Add(new TemplateElement { Type = "text", Content = "Masa: {masa_adi}", Font = "B", Align = "left" });

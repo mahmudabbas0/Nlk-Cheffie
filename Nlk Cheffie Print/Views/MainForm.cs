@@ -34,6 +34,7 @@ namespace Nlk_Cheffie_Print.Views
         public MainForm()
         {
             InitializeComponent();
+            Icon = System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath) ?? SystemIcons.Application;
             LocalizationService.LanguageChanged += TranslateUI;
             this.DoubleBuffered = true;
             InitializeTrayIcon();
@@ -418,6 +419,7 @@ namespace Nlk_Cheffie_Print.Views
             _trayMenu.BackColor = ThemeManager.ColorCard;
             _trayMenu.ForeColor = ThemeManager.ColorText;
             _trayMenu.ShowImageMargin = false;
+            _trayMenu.ShowItemToolTips = true;
             _trayMenu.Renderer = new ToolStripProfessionalRenderer(new CustomColorTable());
 
             _statusMenuItem = new ToolStripMenuItem(LocalizationService.T("tray.status_disconnected", "Durum: Bağlı Değil"))
@@ -462,16 +464,24 @@ namespace Nlk_Cheffie_Print.Views
             {
                 iconColor = Color.FromArgb(244, 67, 54); // Red
                 statusText = LocalizationService.T("tray.status_disconnected", "Durum: Bağlı Değil");
+                _statusMenuItem.ToolTipText = null;
             }
             else if (!string.IsNullOrEmpty(_lastPrinterError))
             {
                 iconColor = Color.FromArgb(255, 152, 0); // Orange/Yellow
-                statusText = $"{LocalizationService.T("tray.printer_error", "Yazıcı Hatası")}: {_lastPrinterError}";
+                string displayErr = _lastPrinterError;
+                if (displayErr.Length > 40)
+                {
+                    displayErr = displayErr.Substring(0, 37) + "...";
+                }
+                statusText = $"{LocalizationService.T("tray.printer_error", "Yazıcı Hatası")}: {displayErr}";
+                _statusMenuItem.ToolTipText = _lastPrinterError;
             }
             else
             {
                 iconColor = Color.FromArgb(76, 175, 80); // Green
                 statusText = LocalizationService.T("tray.status_connected", "Durum: Bağlı");
+                _statusMenuItem.ToolTipText = null;
             }
 
             _statusMenuItem.Text = statusText;

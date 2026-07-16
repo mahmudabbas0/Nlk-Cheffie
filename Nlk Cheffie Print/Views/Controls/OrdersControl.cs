@@ -670,7 +670,19 @@ namespace Nlk_Cheffie_Print.Views.Controls
         private static string GetJsonStr(JsonElement el, string prop)
         {
             if (el.ValueKind == JsonValueKind.Object && el.TryGetProperty(prop, out var p))
-                return p.ValueKind == JsonValueKind.Number ? p.GetDouble().ToString() : p.GetString() ?? "";
+            {
+                return p.ValueKind switch
+                {
+                    JsonValueKind.String => p.GetString() ?? "",
+                    JsonValueKind.Number => p.GetDouble().ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    JsonValueKind.True => "true",
+                    JsonValueKind.False => "false",
+                    JsonValueKind.Null => "",
+                    JsonValueKind.Object => p.GetRawText(),
+                    JsonValueKind.Array => p.GetRawText(),
+                    _ => ""
+                };
+            }
             return "";
         }
 

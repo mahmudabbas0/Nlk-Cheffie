@@ -16,24 +16,34 @@ namespace Nlk_Cheffie_Print.Core.Printer
 
         public static byte[] RenderToEscPos(SlipTemplate template, JsonElement data)
         {
-            var ctx = BuildContext(data);
+            var slip = data;
+            if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("slip_data", out var sd) && sd.ValueKind == JsonValueKind.Object)
+            {
+                slip = sd;
+            }
+
+            var ctx = BuildContext(slip);
             var ms = new MemoryStream();
             var writer = new BinaryWriter(ms);
 
             // Initialize printer
             writer.Write(new byte[] { 0x1B, 0x40 });
 
-            // Set codepage to CP857 (Turkish)
-            writer.Write(new byte[] { 0x1B, 0x74, 61 });
+            // Cancel Kanji/Chinese mode to ensure western codepages are used (crucial for Chinese/generic printers)
+            writer.Write(new byte[] { 0x1C, 0x2E });
+
+            // Set codepage based on configuration (default 18 for generic PC857, or 61 for newer Epson)
+            int codePage = ConfigManager.Current.App.CodePage;
+            writer.Write(new byte[] { 0x1B, 0x74, (byte)codePage });
 
             // Render Header
-            RenderSectionEscPos(template.Header, ctx, writer, data);
+            RenderSectionEscPos(template.Header, ctx, writer, slip);
 
             // Render Body
-            RenderSectionEscPos(template.Body, ctx, writer, data);
+            RenderSectionEscPos(template.Body, ctx, writer, slip);
 
             // Render Footer
-            RenderSectionEscPos(template.Footer, ctx, writer, data);
+            RenderSectionEscPos(template.Footer, ctx, writer, slip);
 
             // Feed paper and cut
             writer.Write(new byte[] { 0x0A, 0x0A, 0x0A, 0x0A }); // 4 line feeds
@@ -71,13 +81,65 @@ namespace Nlk_Cheffie_Print.Core.Printer
                 }
                 else if (el.Type == "logo")
                 {
-                    WriteTextEscPos(writer, "[LOGO]\n", "center", "A", "1x");
+                    string path = el.Path;
+                    if (!string.IsNullOrEmpty(path) && File.Exists(path))
+                    {
+                        try
+                        {
+                            using (var img = Image.FromFile(path))
+                            {
+                                // Resize logo: 160px is optimal width for thermal printer (fits within 384/576 dots)
+                                int w = Math.Min(img.Width, 160);
+                                int h = (int)(img.Height * ((double)w / img.Width));
+                                
+                                using (var bmp = new Bitmap(w, h))
+                                {
+                                    using (var g = Graphics.FromImage(bmp))
+                                    {
+                                        g.Clear(Color.White);
+                                        g.DrawImage(img, 0, 0, w, h);
+                                    }
+                                    
+                                    // Align center for the logo image
+                                    writer.Write(new byte[] { 0x1B, 0x61, 1 });
+                                    
+                                    // Render bitmap to ESC/POS raster graphic bytes without page initialization/cutting
+                                    byte[] logoBytes = RenderBitmapToEscPosBytes(bmp);
+                                    writer.Write(logoBytes);
+                                    
+                                    // Reset alignment to default Left
+                                    writer.Write(new byte[] { 0x1B, 0x61, 0 });
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            WriteTextEscPos(writer, "[LOGO]\n", "center", "A", "1x");
+                        }
+                    }
+                    else
+                    {
+                        WriteTextEscPos(writer, "[LOGO]\n", "center", "A", "1x");
+                    }
                 }
             }
         }
 
+        private static string CleanTurkishCharacters(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            return text
+                .Replace("Ğ", "G")
+                .Replace("ğ", "g")
+                .Replace("Ş", "S")
+                .Replace("ş", "s")
+                .Replace("İ", "I")
+                .Replace("ı", "i");
+        }
+
         private static void WriteTextEscPos(BinaryWriter writer, string text, string align, string font, string size)
         {
+            text = CleanTurkishCharacters(text);
             // Alignment
             byte alignByte = align.ToLower() switch
             {
@@ -95,28 +157,50 @@ namespace Nlk_Cheffie_Print.Core.Printer
             byte sizeByte = size == "2x" ? (byte)0x11 : (byte)0x00; // Double height & width
             writer.Write(new byte[] { 0x1D, 0x21, sizeByte });
 
-            // Encode to Turkish codepage CP857
-            byte[] bytes = Encoding.GetEncoding("ibm857").GetBytes(text);
+            // Encode using the configured encoding (default is ibm857)
+            string encName = string.IsNullOrWhiteSpace(ConfigManager.Current.App.EncodingName) ? "ibm857" : ConfigManager.Current.App.EncodingName;
+            byte[] bytes = Encoding.GetEncoding(encName).GetBytes(text);
             writer.Write(bytes);
         }
 
         private static void RenderItemsEscPos(TemplateElement el, JsonElement data, BinaryWriter writer)
         {
-            // Check order status for cancellation
-            string status = data.TryGetProperty("order_info", out var oi) && oi.TryGetProperty("status", out var st) ? st.GetString() ?? "" : "";
+            // Check order status for cancellation (checking both order_info and root status)
+            string status = data.TryGetProperty("order_info", out var oi) && oi.TryGetProperty("status", out var st) ? GetElementText(st) : "";
+            if (string.IsNullOrEmpty(status) && data.TryGetProperty("status", out var st2)) status = GetElementText(st2);
+
             if (status.ToLower() == "canceled")
             {
                 WriteTextEscPos(writer, "*** SIPARIS IPTAL EDILDI ***\n", "center", "B", "2x");
                 WriteTextEscPos(writer, "--------------------------------\n", "left", "A", "1x");
             }
 
-            if (data.TryGetProperty("items", out var itemsProp) && itemsProp.ValueKind == JsonValueKind.Array)
+            JsonElement itemsProp = default;
+            if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("items", out var wsItems) && wsItems.ValueKind == JsonValueKind.Array)
+                itemsProp = wsItems;
+            else if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("order_items", out var apiItems) && apiItems.ValueKind == JsonValueKind.Array)
+                itemsProp = apiItems;
+
+            if (itemsProp.ValueKind == JsonValueKind.Array)
             {
                 foreach (var item in itemsProp.EnumerateArray())
                 {
                     int qty = item.TryGetProperty("quantity", out var q) ? (q.ValueKind == JsonValueKind.Number ? q.GetInt32() : 1) : 1;
-                    string name = item.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
-                    string total = item.TryGetProperty("line_total", out var lt) ? lt.GetString() ?? "" : "";
+                    
+                    // Parse name (nested or flat support)
+                    string name = item.TryGetProperty("name", out var n) ? GetElementText(n) : "";
+                    if (string.IsNullOrEmpty(name)) name = item.TryGetProperty("product_name", out var pn) ? GetElementText(pn) : "";
+                    if (string.IsNullOrEmpty(name) && item.TryGetProperty("product", out var pObj) && pObj.ValueKind == JsonValueKind.Object)
+                    {
+                        name = pObj.TryGetProperty("name", out var pn2) ? GetElementText(pn2) : "";
+                    }
+
+                    // Parse price/total
+                    string total = item.TryGetProperty("line_total", out var lt) ? GetElementText(lt) : "";
+                    if (string.IsNullOrEmpty(total) && item.TryGetProperty("price", out var pr))
+                    {
+                        total = GetElementText(pr);
+                    }
 
                     string line = $"{qty}x {name}";
                     if (el.ShowPrice && !string.IsNullOrEmpty(total))
@@ -151,7 +235,7 @@ namespace Nlk_Cheffie_Print.Core.Printer
                     // Notes
                     if (el.ShowNotes && item.TryGetProperty("notes", out var noteProp))
                     {
-                        string note = noteProp.GetString() ?? "";
+                        string note = GetElementText(noteProp);
                         if (!string.IsNullOrEmpty(note))
                         {
                             WriteTextEscPos(writer, $" - Not: {note}\n", "left", "A", "1x");
@@ -163,8 +247,14 @@ namespace Nlk_Cheffie_Print.Core.Printer
 
         public static Bitmap RenderToBitmap(SlipTemplate template, JsonElement data, int widthPx = 550)
         {
+            var slip = data;
+            if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("slip_data", out var sd) && sd.ValueKind == JsonValueKind.Object)
+            {
+                slip = sd;
+            }
+
             // Render receipt to dynamic heights using system drawing
-            var ctx = BuildContext(data);
+            var ctx = BuildContext(slip);
 
             // Prepare a temporary small bitmap to measure bounds
             using (var tempBmp = new Bitmap(widthPx, 10))
@@ -181,9 +271,9 @@ namespace Nlk_Cheffie_Print.Core.Printer
                 using (Brush brush = new SolidBrush(Color.Black))
                 {
                     // Compute height offset first
-                    yOffset = MeasureSection(template.Header, ctx, g, yOffset, usableWidth, fnNormal, fnBold, fnHeader, data);
-                    yOffset = MeasureSection(template.Body, ctx, g, yOffset, usableWidth, fnNormal, fnBold, fnHeader, data);
-                    yOffset = MeasureSection(template.Footer, ctx, g, yOffset, usableWidth, fnNormal, fnBold, fnHeader, data);
+                    yOffset = MeasureSection(template.Header, ctx, g, yOffset, usableWidth, fnNormal, fnBold, fnHeader, slip);
+                    yOffset = MeasureSection(template.Body, ctx, g, yOffset, usableWidth, fnNormal, fnBold, fnHeader, slip);
+                    yOffset = MeasureSection(template.Footer, ctx, g, yOffset, usableWidth, fnNormal, fnBold, fnHeader, slip);
 
                     // Create final sized bitmap
                     var finalBmp = new Bitmap(widthPx, yOffset + 30);
@@ -191,9 +281,9 @@ namespace Nlk_Cheffie_Print.Core.Printer
                     {
                         finalG.Clear(Color.White);
                         int drawY = 10;
-                        drawY = DrawSection(template.Header, ctx, finalG, drawY, usableWidth, margin, fnNormal, fnBold, fnHeader, brush, data);
-                        drawY = DrawSection(template.Body, ctx, finalG, drawY, usableWidth, margin, fnNormal, fnBold, fnHeader, brush, data);
-                        drawY = DrawSection(template.Footer, ctx, finalG, drawY, usableWidth, margin, fnNormal, fnBold, fnHeader, brush, data);
+                        drawY = DrawSection(template.Header, ctx, finalG, drawY, usableWidth, margin, fnNormal, fnBold, fnHeader, brush, slip);
+                        drawY = DrawSection(template.Body, ctx, finalG, drawY, usableWidth, margin, fnNormal, fnBold, fnHeader, brush, slip);
+                        drawY = DrawSection(template.Footer, ctx, finalG, drawY, usableWidth, margin, fnNormal, fnBold, fnHeader, brush, slip);
                     }
                     return finalBmp;
                 }
@@ -217,8 +307,13 @@ namespace Nlk_Cheffie_Print.Core.Printer
             if (el.Type == "logo") return yOffset + 60;
             if (el.Type == "items")
             {
-                // Measure each items list
-                if (data.TryGetProperty("items", out var itemsProp) && itemsProp.ValueKind == JsonValueKind.Array)
+                JsonElement itemsProp = default;
+                if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("items", out var wsItems) && wsItems.ValueKind == JsonValueKind.Array)
+                    itemsProp = wsItems;
+                else if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("order_items", out var apiItems) && apiItems.ValueKind == JsonValueKind.Array)
+                    itemsProp = apiItems;
+
+                if (itemsProp.ValueKind == JsonValueKind.Array)
                 {
                     foreach (var item in itemsProp.EnumerateArray())
                     {
@@ -320,7 +415,10 @@ namespace Nlk_Cheffie_Print.Core.Printer
 
             if (el.Type == "items")
             {
-                string status = data.TryGetProperty("order_info", out var oi) && oi.TryGetProperty("status", out var st) ? st.GetString() ?? "" : "";
+                // Check order status for cancellation (checking both order_info and root status)
+                string status = data.TryGetProperty("order_info", out var oi) && oi.TryGetProperty("status", out var st) ? GetElementText(st) : "";
+                if (string.IsNullOrEmpty(status) && data.TryGetProperty("status", out var st2)) status = GetElementText(st2);
+
                 if (status.ToLower() == "canceled")
                 {
                     g.DrawString("*** SIPARIS IPTAL EDILDI ***", fnHeader, Brushes.Red, margin + (usableWidth - g.MeasureString("*** SIPARIS IPTAL EDILDI ***", fnHeader).Width) / 2, yOffset);
@@ -329,13 +427,32 @@ namespace Nlk_Cheffie_Print.Core.Printer
                     yOffset += 12;
                 }
 
-                if (data.TryGetProperty("items", out var itemsProp) && itemsProp.ValueKind == JsonValueKind.Array)
+                JsonElement itemsProp = default;
+                if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("items", out var wsItems) && wsItems.ValueKind == JsonValueKind.Array)
+                    itemsProp = wsItems;
+                else if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("order_items", out var apiItems) && apiItems.ValueKind == JsonValueKind.Array)
+                    itemsProp = apiItems;
+
+                if (itemsProp.ValueKind == JsonValueKind.Array)
                 {
                     foreach (var item in itemsProp.EnumerateArray())
                     {
                         int qty = item.TryGetProperty("quantity", out var q) ? (q.ValueKind == JsonValueKind.Number ? q.GetInt32() : 1) : 1;
-                        string name = item.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
-                        string total = item.TryGetProperty("line_total", out var lt) ? lt.GetString() ?? "" : "";
+                        
+                        // Parse name (nested or flat support)
+                        string name = item.TryGetProperty("name", out var n) ? GetElementText(n) : "";
+                        if (string.IsNullOrEmpty(name)) name = item.TryGetProperty("product_name", out var pn) ? GetElementText(pn) : "";
+                        if (string.IsNullOrEmpty(name) && item.TryGetProperty("product", out var pObj) && pObj.ValueKind == JsonValueKind.Object)
+                        {
+                            name = pObj.TryGetProperty("name", out var pn2) ? GetElementText(pn2) : "";
+                        }
+
+                        // Parse price/total
+                        string total = item.TryGetProperty("line_total", out var lt) ? GetElementText(lt) : "";
+                        if (string.IsNullOrEmpty(total) && item.TryGetProperty("price", out var pr))
+                        {
+                            total = GetElementText(pr);
+                        }
 
                         string line = $"{qty}x {name}";
                         g.DrawString(line, fnNormal, brush, margin, yOffset);
@@ -366,7 +483,7 @@ namespace Nlk_Cheffie_Print.Core.Printer
                         // Notes
                         if (el.ShowNotes && item.TryGetProperty("notes", out var noteProp))
                         {
-                            string note = noteProp.GetString() ?? "";
+                            string note = GetElementText(noteProp);
                             if (!string.IsNullOrEmpty(note))
                             {
                                 g.DrawString($" - Not: {note}", fnNormal, Brushes.Gray, margin + 15, yOffset);
@@ -398,46 +515,97 @@ namespace Nlk_Cheffie_Print.Core.Printer
             var ctx = new Dictionary<string, string>();
             var slip = root;
 
-            if (root.TryGetProperty("slip_data", out var sd) && sd.ValueKind == JsonValueKind.Object)
+            if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("slip_data", out var sd) && sd.ValueKind == JsonValueKind.Object)
             {
                 slip = sd;
             }
 
-            var rest = slip.TryGetProperty("restaurant_info", out var r) ? r : default;
-            var ord = slip.TryGetProperty("order_info", out var o) ? o : default;
-            var pay = slip.TryGetProperty("payment_info", out var p) ? p : default;
-            var links = slip.TryGetProperty("links", out var l) ? l : default;
-            var cancel = slip.TryGetProperty("cancel_info", out var c) ? c : default;
+            var rest = slip.ValueKind == JsonValueKind.Object && slip.TryGetProperty("restaurant_info", out var r) ? r : default;
+            var ord = slip.ValueKind == JsonValueKind.Object && slip.TryGetProperty("order_info", out var o) ? o : default;
+            var pay = slip.ValueKind == JsonValueKind.Object && slip.TryGetProperty("payment_info", out var p) ? p : default;
+            var links = slip.ValueKind == JsonValueKind.Object && slip.TryGetProperty("links", out var l) ? l : default;
+            var cancel = slip.ValueKind == JsonValueKind.Object && slip.TryGetProperty("cancel_info", out var c) ? c : default;
 
-            ctx["restoran_adi"] = GetStr(rest, "name", "CHEFFIE POS");
-            ctx["restoran_adres"] = GetStr(rest, "address", "");
-            ctx["restoran_telefon"] = GetStr(rest, "phone", "");
+            // Restaurant Info fallback to ConfigManager defaults if empty or not provided
+            ctx["restoran_adi"] = GetStr(rest, "name", string.IsNullOrWhiteSpace(ConfigManager.Current.App.RestaurantName) ? "CHEFFIE POS" : ConfigManager.Current.App.RestaurantName);
+            ctx["restoran_adres"] = GetStr(rest, "address", ConfigManager.Current.App.RestaurantAddress);
+            ctx["restoran_telefon"] = GetStr(rest, "phone", ConfigManager.Current.App.RestaurantPhone);
             ctx["restoran_vergi_no"] = GetStr(rest, "tax_id", "");
             
-            ctx["masa_no"] = GetStr(ord, "table_name", "");
-            ctx["masa_adi"] = GetStr(ord, "table_name", "");
-            ctx["siparis_no"] = GetStr(ord, "order_number", "");
-            ctx["garson_adi"] = GetStr(ord, "waiter_name", "-");
-            ctx["tarih"] = GetStr(ord, "date", DateTime.Now.ToString("dd.MM.yyyy"));
-            ctx["saat"] = GetStr(ord, "time", DateTime.Now.ToString("HH:mm"));
-            
-            ctx["ara_toplam"] = GetStr(pay, "subtotal", "0.00");
-            ctx["ekstra_toplam"] = GetStr(pay, "extras_total", "0.00");
-            ctx["kdv_toplam"] = GetStr(pay, "tax", "0.00");
-            ctx["toplam_tutar"] = GetStr(pay, "total", "0.00");
+            // Order Info (with flat API Order fallbacks)
+            string tableName = "";
+            if (ord.ValueKind == JsonValueKind.Object)
+            {
+                tableName = GetStr(ord, "table_name", "");
+            }
+            else if (slip.ValueKind == JsonValueKind.Object)
+            {
+                if (slip.TryGetProperty("table", out var tEl))
+                {
+                    tableName = tEl.ValueKind == JsonValueKind.Object ? GetStr(tEl, "name", "") : (tEl.ValueKind == JsonValueKind.String ? tEl.GetString() ?? "" : "");
+                }
+                if (string.IsNullOrEmpty(tableName)) tableName = GetStr(slip, "table_name", "");
+            }
+            ctx["masa_no"] = tableName;
+            ctx["masa_adi"] = tableName;
 
-            ctx["musteri_adi"] = GetStr(ord, "customer_name", "");
-            ctx["musteri_telefon"] = GetStr(ord, "customer_phone", "");
-            ctx["musteri_email"] = GetStr(ord, "customer_email", "");
-            ctx["teslimat_adresi"] = GetStr(ord, "delivery_address", "");
-            ctx["odeme_tipi"] = GetStr(ord, "payment_method", "");
-            ctx["ek_not"] = GetStr(ord, "order_note", "");
+            ctx["siparis_no"] = ord.ValueKind == JsonValueKind.Object ? GetStr(ord, "order_number", "") : GetStr(slip, "order_number", "");
+            ctx["garson_adi"] = ord.ValueKind == JsonValueKind.Object ? GetStr(ord, "waiter_name", "-") : GetStr(slip, "waiter", "-");
+
+            // Date & Time parsing
+            string dateStr = DateTime.Now.ToString("dd.MM.yyyy");
+            string timeStr = DateTime.Now.ToString("HH:mm");
+            if (ord.ValueKind == JsonValueKind.Object)
+            {
+                dateStr = GetStr(ord, "date", dateStr);
+                timeStr = GetStr(ord, "time", timeStr);
+            }
+            else if (slip.ValueKind == JsonValueKind.Object)
+            {
+                string ts = "";
+                if (slip.TryGetProperty("created_at", out var cat)) ts = cat.ValueKind == JsonValueKind.String ? cat.GetString() ?? "" : "";
+                if (string.IsNullOrEmpty(ts)) ts = GetStr(slip, "ts", "");
+                if (DateTime.TryParse(ts, null, System.Globalization.DateTimeStyles.RoundtripKind, out DateTime dt))
+                {
+                    var localDt = ts.EndsWith("Z", StringComparison.OrdinalIgnoreCase) ? dt.ToLocalTime() : dt;
+                    dateStr = localDt.ToString("dd.MM.yyyy");
+                    timeStr = localDt.ToString("HH:mm");
+                }
+            }
+            ctx["tarih"] = dateStr;
+            ctx["saat"] = timeStr;
+            
+            // Payment Info (with flat API Order fallbacks)
+            ctx["ara_toplam"] = pay.ValueKind == JsonValueKind.Object ? GetStr(pay, "subtotal", "0.00") : GetStr(slip, "subtotal", "0.00");
+            if (string.IsNullOrEmpty(ctx["ara_toplam"])) ctx["ara_toplam"] = "0.00";
+            
+            ctx["ekstra_toplam"] = pay.ValueKind == JsonValueKind.Object ? GetStr(pay, "extras_total", "0.00") : GetStr(slip, "extras_total", "0.00");
+            if (string.IsNullOrEmpty(ctx["ekstra_toplam"])) ctx["ekstra_toplam"] = "0.00";
+
+            ctx["kdv_toplam"] = pay.ValueKind == JsonValueKind.Object ? GetStr(pay, "tax", "0.00") : GetStr(slip, "tax", "0.00");
+            if (string.IsNullOrEmpty(ctx["kdv_toplam"])) ctx["kdv_toplam"] = "0.00";
+
+            string totalVal = "0.00";
+            if (pay.ValueKind == JsonValueKind.Object) totalVal = GetStr(pay, "total", "0.00");
+            else if (slip.ValueKind == JsonValueKind.Object)
+            {
+                totalVal = GetStr(slip, "total_amount", "");
+                if (string.IsNullOrEmpty(totalVal)) totalVal = GetStr(slip, "total", "0.00");
+            }
+            ctx["toplam_tutar"] = totalVal;
+
+            ctx["musteri_adi"] = ord.ValueKind == JsonValueKind.Object ? GetStr(ord, "customer_name", "") : GetStr(slip, "customer_name", "");
+            ctx["musteri_telefon"] = ord.ValueKind == JsonValueKind.Object ? GetStr(ord, "customer_phone", "") : GetStr(slip, "customer_phone", "");
+            ctx["musteri_email"] = ord.ValueKind == JsonValueKind.Object ? GetStr(ord, "customer_email", "") : GetStr(slip, "customer_email", GetStr(slip, "email", ""));
+            ctx["teslimat_adresi"] = ord.ValueKind == JsonValueKind.Object ? GetStr(ord, "delivery_address", "") : GetStr(slip, "delivery_address", "");
+            ctx["odeme_tipi"] = ord.ValueKind == JsonValueKind.Object ? GetStr(ord, "payment_method", "") : GetStr(slip, "payment_method", "");
+            ctx["ek_not"] = ord.ValueKind == JsonValueKind.Object ? GetStr(ord, "order_note", "") : GetStr(slip, "notes", "");
 
             ctx["wifi_ag_adi"] = GetStr(rest, "wifi_ssid", "");
             ctx["wifi_sifresi"] = GetStr(rest, "wifi_password", "");
             ctx["odeme_linki"] = GetStr(links, "payment_url", "");
             ctx["slip_title"] = GetStr(slip, "slip_title", "");
-            ctx["siparis_durumu"] = GetStr(ord, "status", "pending");
+            ctx["siparis_durumu"] = ord.ValueKind == JsonValueKind.Object ? GetStr(ord, "status", "pending") : GetStr(slip, "status", "pending");
             
             ctx["iptal_sebebi"] = GetStr(cancel, "reason", "");
             ctx["iptal_saati"] = GetStr(cancel, "canceled_at", "");
@@ -449,8 +617,17 @@ namespace Nlk_Cheffie_Print.Core.Printer
         {
             if (parent.ValueKind == JsonValueKind.Object && parent.TryGetProperty(propName, out var p))
             {
-                if (p.ValueKind == JsonValueKind.Number) return p.GetDouble().ToString();
-                return p.GetString() ?? fallback;
+                return p.ValueKind switch
+                {
+                    JsonValueKind.String => p.GetString() ?? fallback,
+                    JsonValueKind.Number => p.GetDouble().ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    JsonValueKind.True => "true",
+                    JsonValueKind.False => "false",
+                    JsonValueKind.Null => fallback,
+                    JsonValueKind.Object => p.GetRawText(),
+                    JsonValueKind.Array => p.GetRawText(),
+                    _ => fallback
+                };
             }
             return fallback;
         }
@@ -576,6 +753,20 @@ namespace Nlk_Cheffie_Print.Core.Printer
             return "";
         }
 
+        private static string GetElementText(JsonElement element)
+        {
+            if (element.ValueKind == JsonValueKind.String) return element.GetString() ?? "";
+            if (element.ValueKind == JsonValueKind.Number) return element.GetRawText();
+            if (element.ValueKind != JsonValueKind.Object) return "";
+
+            string language = ConfigManager.Current.App.Language;
+            if (element.TryGetProperty(language, out var localized)) return GetElementText(localized);
+            if (element.TryGetProperty("tr", out var turkish)) return GetElementText(turkish);
+            if (element.TryGetProperty("en", out var english)) return GetElementText(english);
+            if (element.TryGetProperty("name", out var name)) return GetElementText(name);
+            return "";
+        }
+
         public static Dictionary<string, string> GetMockContext()
         {
             return BuildContext(GetMockOrderData());
@@ -679,8 +870,7 @@ namespace Nlk_Cheffie_Print.Core.Printer
                         if (x >= bitmap.Width) continue;
 
                         Color pixel = bitmap.GetPixel(x, y);
-                        int luminance = (int)(pixel.R * 0.299 + pixel.G * 0.587 + pixel.B * 0.114);
-                        if (pixel.A > 50 && luminance < 128) value |= (byte)(0x80 >> bit);
+                        if (ShouldPrintPixel(pixel)) value |= (byte)(0x80 >> bit);
                     }
                     writer.Write(value);
                 }
@@ -688,6 +878,55 @@ namespace Nlk_Cheffie_Print.Core.Printer
 
             writer.Write(new byte[] { 0x0A, 0x0A, 0x0A, 0x1D, 0x56, 0x41, 0x03 });
             return stream.ToArray();
+        }
+
+        public static byte[] RenderBitmapToEscPosBytes(Bitmap bitmap)
+        {
+            int widthBytes = (bitmap.Width + 7) / 8;
+            using var stream = new MemoryStream();
+            using var writer = new BinaryWriter(stream);
+
+            writer.Write(new byte[]
+            {
+                0x1D, 0x76, 0x30, 0x00,
+                (byte)(widthBytes & 0xFF), (byte)(widthBytes >> 8),
+                (byte)(bitmap.Height & 0xFF), (byte)(bitmap.Height >> 8)
+            });
+
+            for (int y = 0; y < bitmap.Height; y++)
+            {
+                for (int xByte = 0; xByte < widthBytes; xByte++)
+                {
+                    byte value = 0;
+                    for (int bit = 0; bit < 8; bit++)
+                    {
+                        int x = xByte * 8 + bit;
+                        if (x >= bitmap.Width) continue;
+
+                        Color pixel = bitmap.GetPixel(x, y);
+                        if (ShouldPrintPixel(pixel)) value |= (byte)(0x80 >> bit);
+                    }
+                    writer.Write(value);
+                }
+            }
+
+            writer.Write(new byte[] { 0x0A }); // Feed single line after the logo
+            return stream.ToArray();
+        }
+
+        private static bool ShouldPrintPixel(Color pixel)
+        {
+            if (pixel.A <= 50)
+            {
+                return false;
+            }
+
+            int luminance = (int)(pixel.R * 0.299 + pixel.G * 0.587 + pixel.B * 0.114);
+            int chroma = Math.Max(pixel.R, Math.Max(pixel.G, pixel.B)) - Math.Min(pixel.R, Math.Min(pixel.G, pixel.B));
+
+            // Thermal printers are monochrome. A strict luminance-only threshold loses
+            // bright saturated colours (for example the cyan circle in the NLK logo).
+            return luminance < 200 || (chroma >= 40 && luminance < 245);
         }
     }
 }
