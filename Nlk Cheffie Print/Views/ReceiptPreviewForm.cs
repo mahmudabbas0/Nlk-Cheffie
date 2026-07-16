@@ -36,6 +36,8 @@ namespace Nlk_Cheffie_Print.Views
         // View 2: Visual Preview Controls
         private PictureBox picPreview;
         private FlatScrollBar scrollBar;
+        private Bitmap? previewImage;
+        private bool updatingPreviewLayout;
         
         // Footer & Action Buttons
         private Panel pnlFooter;
@@ -195,7 +197,7 @@ namespace Nlk_Cheffie_Print.Views
             // Preview View Setup
             picPreview = new PictureBox
             {
-                SizeMode = PictureBoxSizeMode.AutoSize,
+                SizeMode = PictureBoxSizeMode.StretchImage,
                 BackColor = Color.White,
                 Visible = false
             };
@@ -212,7 +214,7 @@ namespace Nlk_Cheffie_Print.Views
             {
                 if (picPreview.Visible)
                 {
-                    picPreview.Top = -scrollBar.Value + pnlCanvas.Padding.Top;
+                    LayoutPreviewImage();
                 }
                 else if (pnlDetails.Visible)
                 {
@@ -284,7 +286,6 @@ namespace Nlk_Cheffie_Print.Views
 
             if (picPreview.Visible)
             {
-                picPreview.Left = Math.Max(pnlCanvas.Padding.Left, (pnlCanvas.ClientSize.Width - scrollBar.Width - picPreview.Width) / 2);
                 UpdateScrollRange();
             }
             else if (pnlDetails.Visible)
@@ -675,10 +676,6 @@ namespace Nlk_Cheffie_Print.Views
                 
                 btnToggle.Text = LocalizationService.T("orders.detail.show_details", "DETAYLARI GÖSTER");
                 
-                // Align Preview PictureBox inside canvas and calculate scroll ranges
-                picPreview.Left = Math.Max(pnlCanvas.Padding.Left, (pnlCanvas.ClientSize.Width - scrollBar.Width - picPreview.Width) / 2);
-                picPreview.Top = pnlCanvas.Padding.Top;
-                
                 UpdateScrollRange();
             }
             else
@@ -702,8 +699,8 @@ namespace Nlk_Cheffie_Print.Views
         {
             try
             {
-                var bitmap = ReceiptRenderer.RenderToBitmap(_template, _data);
-                picPreview.Image = (Bitmap)bitmap.Clone();
+                previewImage = ReceiptRenderer.RenderToBitmap(_template, _data);
+                picPreview.Image = previewImage;
             }
             catch (Exception ex)
             {
@@ -713,32 +710,61 @@ namespace Nlk_Cheffie_Print.Views
 
         private void UpdateScrollRange()
         {
-            int visibleHeight = pnlCanvas.Height - pnlCanvas.Padding.Top - pnlCanvas.Padding.Bottom;
-            int totalHeight = picPreview.Height;
-            int maxScroll = totalHeight - visibleHeight;
+            if (previewImage == null || updatingPreviewLayout) return;
 
-            bool shouldBeVisible = maxScroll > 0;
-            if (scrollBar.Visible != shouldBeVisible)
+            updatingPreviewLayout = true;
+            try
             {
-                scrollBar.Visible = shouldBeVisible;
+                LayoutPreviewImage();
+                int visibleHeight = pnlCanvas.Height - pnlCanvas.Padding.Top - pnlCanvas.Padding.Bottom;
+                int totalHeight = picPreview.Height;
+                int maxScroll = totalHeight - visibleHeight;
+
+                bool shouldBeVisible = maxScroll > 0;
+                if (scrollBar.Visible != shouldBeVisible)
+                {
+                    scrollBar.Visible = shouldBeVisible;
+                    if (shouldBeVisible)
+                    {
+                        scrollBar.BringToFront();
+                    }
+                    LayoutPreviewImage();
+                    totalHeight = picPreview.Height;
+                    maxScroll = totalHeight - visibleHeight;
+                }
+
                 if (shouldBeVisible)
                 {
-                    scrollBar.BringToFront();
+                    scrollBar.Minimum = 0;
+                    scrollBar.Maximum = totalHeight;
+                    scrollBar.LargeChange = visibleHeight;
+                    scrollBar.Value = Math.Min(scrollBar.Value, Math.Max(0, scrollBar.Maximum - scrollBar.LargeChange + 1));
+                    LayoutPreviewImage();
                 }
-                Canvas_Resize(this, EventArgs.Empty);
-                return;
+                else
+                {
+                    picPreview.Top = pnlCanvas.Padding.Top + Math.Max(0, (visibleHeight - totalHeight) / 2);
+                }
             }
+            finally
+            {
+                updatingPreviewLayout = false;
+            }
+        }
 
-            if (shouldBeVisible)
-            {
-                scrollBar.Minimum = 0;
-                scrollBar.Maximum = totalHeight;
-                scrollBar.LargeChange = visibleHeight;
-            }
-            else
-            {
-                picPreview.Top = pnlCanvas.Padding.Top + Math.Max(0, (visibleHeight - totalHeight) / 2);
-            }
+        private void LayoutPreviewImage()
+        {
+            if (previewImage == null) return;
+
+            int availableWidth = pnlCanvas.ClientSize.Width - pnlCanvas.Padding.Left - pnlCanvas.Padding.Right;
+            if (scrollBar.Visible) availableWidth -= scrollBar.Width;
+            availableWidth = Math.Max(1, availableWidth);
+
+            int width = Math.Min(previewImage.Width, availableWidth);
+            int height = Math.Max(1, (int)Math.Round(previewImage.Height * (width / (double)previewImage.Width)));
+            picPreview.Size = new Size(width, height);
+            picPreview.Left = pnlCanvas.Padding.Left + Math.Max(0, (availableWidth - width) / 2);
+            picPreview.Top = pnlCanvas.Padding.Top - (scrollBar.Visible ? scrollBar.Value : 0);
         }
 
         private void UpdateDetailsScrollRange()
@@ -756,14 +782,6 @@ namespace Nlk_Cheffie_Print.Views
             }
 
             int maxScroll = totalHeight - visibleHeight;
-
-            try
-            {
-                string logPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "layout_log.txt");
-                System.IO.File.WriteAllText(logPath,
-                    $"visibleHeight={visibleHeight}, totalHeight={totalHeight}, maxScroll={maxScroll}, scrollBarVisible={scrollBar.Visible}");
-            }
-            catch {}
 
             bool shouldBeVisible = maxScroll > 0;
             if (scrollBar.Visible != shouldBeVisible)
@@ -802,7 +820,7 @@ namespace Nlk_Cheffie_Print.Views
             scrollBar.Value = val;
             if (picPreview.Visible)
             {
-                picPreview.Top = -val + pnlCanvas.Padding.Top;
+                LayoutPreviewImage();
             }
             else if (pnlDetails.Visible)
             {
@@ -841,6 +859,15 @@ namespace Nlk_Cheffie_Print.Views
             {
                 e.Graphics.DrawRectangle(pen, 0, 0, ClientSize.Width - 1, ClientSize.Height - 1);
             }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                previewImage?.Dispose();
+            }
+            base.Dispose(disposing);
         }
 
         private void Reprint()
