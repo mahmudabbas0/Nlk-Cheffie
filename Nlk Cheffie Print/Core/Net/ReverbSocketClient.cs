@@ -2,6 +2,7 @@ using System;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Nlk_Cheffie_Print.Core;
@@ -62,24 +63,41 @@ namespace Nlk_Cheffie_Print.Core.Net
                     byte[] buffer = new byte[8192];
                     while (_webSocket.State == WebSocketState.Open && !cancellationToken.IsCancellationRequested)
                     {
-                        var result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
+                        using var messageStream = new MemoryStream();
+                        WebSocketReceiveResult result;
+                        do
+                        {
+                            result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
+                            if (result.MessageType == WebSocketMessageType.Close)
+                            {
+                                await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", cancellationToken);
+                                break;
+                            }
+
+                            if (messageStream.Length + result.Count > 1024 * 1024)
+                            {
+                                throw new InvalidDataException("WebSocket mesajı izin verilen boyutu aşıyor.");
+                            }
+                            messageStream.Write(buffer, 0, result.Count);
+                        }
+                        while (!result.EndOfMessage);
+
                         if (result.MessageType == WebSocketMessageType.Close)
                         {
-                            await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", cancellationToken);
                             break;
                         }
 
                         if (result.MessageType == WebSocketMessageType.Text)
                         {
-                            string message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                            ProcessWsMessage(message);
+                            string message = Encoding.UTF8.GetString(messageStream.ToArray());
+                            await ProcessWsMessage(message);
                         }
                     }
                 }
                 catch (Exception ex)
                 {
                     // Log connection failure
-                    File.AppendAllText(GetLogFilePath(), $"[WS ERROR] {DateTime.Now}: {ex.Message}\n");
+                    AppendLog($"[WS ERROR] {ex.Message}");
                 }
                 finally
                 {
@@ -112,10 +130,10 @@ namespace Nlk_Cheffie_Print.Core.Net
             string json = JsonSerializer.Serialize(payload);
             byte[] bytes = Encoding.UTF8.GetBytes(json);
             await _webSocket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, cancellationToken);
-            File.AppendAllText(GetLogFilePath(), $"[WS SUBSCRIBE] Subscribed to {channelName}\n");
+            AppendLog($"[WS SUBSCRIBE] {channelName}");
         }
 
-        private void ProcessWsMessage(string jsonMessage)
+        private async Task ProcessWsMessage(string jsonMessage)
         {
             try
             {
@@ -129,7 +147,7 @@ namespace Nlk_Cheffie_Print.Core.Net
                     // Pusher Keepalive Heartbeat ping
                     if (eventName == "pusher:ping")
                     {
-                        SendPong();
+                        await SendPong();
                         return;
                     }
 
@@ -144,7 +162,7 @@ namespace Nlk_Cheffie_Print.Core.Net
                                 {
                                     bool isCancel = (eventName == "CancelPrintJob");
                                     PrintJobReceived?.Invoke(dataDoc.RootElement.Clone(), isCancel);
-                                    File.AppendAllText(GetLogFilePath(), $"[WS EVENT] Received {eventName} job\n");
+                                    AppendLog($"[WS EVENT] {eventName}");
                                 }
                             }
                         }
@@ -153,11 +171,11 @@ namespace Nlk_Cheffie_Print.Core.Net
             }
             catch (Exception ex)
             {
-                File.AppendAllText(GetLogFilePath(), $"[WS PARSE ERROR] {ex.Message} for message: {jsonMessage}\n");
+                AppendLog($"[WS PARSE ERROR] {ex.Message}");
             }
         }
 
-        private async void SendPong()
+        private async Task SendPong()
         {
             if (_webSocket == null || _webSocket.State != WebSocketState.Open) return;
             try
@@ -174,10 +192,22 @@ namespace Nlk_Cheffie_Print.Core.Net
 
         private string GetLogFilePath()
         {
-            string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            string appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             string dir = Path.Combine(appData, "NlkCheffiePrint", "logs");
             Directory.CreateDirectory(dir);
             return Path.Combine(dir, "ws_client.log");
+        }
+
+        private void AppendLog(string message)
+        {
+            try
+            {
+                LogMaintenance.Append(GetLogFilePath(), $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}\n", 2 * 1024 * 1024);
+            }
+            catch
+            {
+                // Logging must not terminate the receive loop.
+            }
         }
     }
 }

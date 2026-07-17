@@ -11,11 +11,13 @@ namespace Nlk_Cheffie_Print.Core.Net
         private HttpListener? _listener;
         private bool _isRunning;
         private int _port;
+        private string _expectedState = "";
 
         public event Action<string>? TokenReceived;
 
-        public int Start(int port = 54321)
+        public int Start(string expectedState, int port = 54321)
         {
+            _expectedState = expectedState ?? "";
             _port = port;
             _listener = new HttpListener();
 
@@ -79,12 +81,15 @@ namespace Nlk_Cheffie_Print.Core.Net
             if (request.Url != null && request.Url.AbsolutePath == "/callback")
             {
                 string? token = request.QueryString["token"];
+                string? state = request.QueryString["state"];
+                bool validState = !string.IsNullOrEmpty(_expectedState)
+                    && string.Equals(state, _expectedState, StringComparison.Ordinal);
 
                 response.StatusCode  = (int)HttpStatusCode.OK;
                 response.ContentType = "text/html; charset=utf-8";
 
                 string html;
-                if (!string.IsNullOrEmpty(token))
+                if (!string.IsNullOrEmpty(token) && validState)
                 {
                     html = @"<!DOCTYPE html>
 <html lang='tr'>
@@ -151,7 +156,7 @@ namespace Nlk_Cheffie_Print.Core.Net
                 }
 
                 // 3. ONLY after the response is fully sent, fire the token event & stop the server
-                if (!string.IsNullOrEmpty(token))
+                if (!string.IsNullOrEmpty(token) && validState)
                 {
                     // Small delay to ensure the browser has received the bytes
                     await Task.Delay(200);

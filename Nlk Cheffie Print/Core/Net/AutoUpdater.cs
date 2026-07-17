@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Text.Json;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -15,7 +16,7 @@ namespace Nlk_Cheffie_Print.Core.Net
         public const string CurrentVersion = "1.0.0";
         private readonly string _apiBaseUrl;
 
-        public event Action<string, string, bool>? UpdateAvailable; // (latestVersion, downloadUrl, isMandatory)
+        public event Action<string, string, string, bool>? UpdateAvailable; // (latestVersion, downloadUrl, sha256, isMandatory)
         public event Action<int>? DownloadProgressChanged;
         public event Action<string>? DownloadCompleted;
         public event Action<string>? ErrorOccurred;
@@ -27,6 +28,11 @@ namespace Nlk_Cheffie_Print.Core.Net
 
         public async Task CheckForUpdatesAsync()
         {
+            if (!ConfigManager.IsSecureApiUrl(_apiBaseUrl))
+            {
+                ErrorOccurred?.Invoke("Güvenli olmayan güncelleme sunucusu reddedildi.");
+                return;
+            }
             string url = $"{_apiBaseUrl}/public/desktop/latest-version";
             try
             {
@@ -44,11 +50,12 @@ namespace Nlk_Cheffie_Print.Core.Net
                             {
                                 string latestVersion = root.GetProperty("version").GetString() ?? "";
                                 string downloadUrl = root.GetProperty("download_url").GetString() ?? "";
+                                string sha256 = root.TryGetProperty("sha256", out var hashProp) ? hashProp.GetString() ?? "" : "";
                                 bool isMandatory = root.TryGetProperty("is_mandatory", out var manProp) && manProp.GetBoolean();
 
-                                if (IsNewerVersion(latestVersion, CurrentVersion))
+                                if (IsNewerVersion(latestVersion, CurrentVersion) && IsValidUpdateMetadata(downloadUrl, sha256))
                                 {
-                                    UpdateAvailable?.Invoke(latestVersion, downloadUrl, isMandatory);
+                                    UpdateAvailable?.Invoke(latestVersion, downloadUrl, sha256, isMandatory);
                                 }
                             }
                         }
@@ -61,10 +68,14 @@ namespace Nlk_Cheffie_Print.Core.Net
             }
         }
 
-        public async Task DownloadAndInstallUpdateAsync(string downloadUrl)
+        public async Task DownloadAndInstallUpdateAsync(string downloadUrl, string expectedSha256)
         {
             try
             {
+                if (!IsValidUpdateMetadata(downloadUrl, expectedSha256))
+                {
+                    throw new InvalidOperationException("Güncelleme paketi doğrulama bilgisi geçersiz.");
+                }
                 string tempDir = Path.GetTempPath();
                 string fileName = "nlkCheffie-Print-Setup.exe";
 
@@ -113,6 +124,16 @@ namespace Nlk_Cheffie_Print.Core.Net
                     }
                 }
 
+                using (var stream = File.OpenRead(tempFile))
+                {
+                    string actualSha256 = Convert.ToHexString(SHA256.HashData(stream));
+                    if (!actualSha256.Equals(expectedSha256, StringComparison.OrdinalIgnoreCase))
+                    {
+                        File.Delete(tempFile);
+                        throw new InvalidDataException("İndirilen güncellemenin SHA-256 doğrulaması başarısız oldu.");
+                    }
+                }
+
                 DownloadCompleted?.Invoke(tempFile);
                 TriggerInstaller(tempFile);
             }
@@ -120,6 +141,14 @@ namespace Nlk_Cheffie_Print.Core.Net
             {
                 ErrorOccurred?.Invoke(ex.Message);
             }
+        }
+
+        private static bool IsValidUpdateMetadata(string downloadUrl, string sha256)
+        {
+            return Uri.TryCreate(downloadUrl, UriKind.Absolute, out var uri)
+                && uri.Scheme == Uri.UriSchemeHttps
+                && sha256.Length == 64
+                && sha256.All(Uri.IsHexDigit);
         }
 
         private void TriggerInstaller(string filePath)

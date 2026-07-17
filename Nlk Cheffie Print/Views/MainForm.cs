@@ -148,6 +148,15 @@ namespace Nlk_Cheffie_Print.Views
             var slipData = data.TryGetProperty("slip_data", out var sdProp) ? sdProp : data;
             string jobId = data.TryGetProperty("job_id", out var idProp) ? idProp.GetString() ?? "" : "";
 
+            if (isCancel)
+            {
+                if (!string.IsNullOrWhiteSpace(jobId))
+                {
+                    PrintQueueWorker.Cancel(jobId);
+                }
+                return;
+            }
+
             // Notify UI that order list might have changed
             this.Invoke(new Action(() =>
             {
@@ -218,22 +227,20 @@ namespace Nlk_Cheffie_Print.Views
             await _updater.CheckForUpdatesAsync();
         }
 
-        private void OnUpdateAvailable(string latestVersion, string downloadUrl, bool isMandatory)
+        private void OnUpdateAvailable(string latestVersion, string downloadUrl, string sha256, bool isMandatory)
         {
             if (this.IsDisposed) return;
 
             this.Invoke(new Action(() =>
             {
-                lblUpdateBanner.Text = $"{LocalizationService.T("updater.new_version")} (v{latestVersion})";
+                lblUpdateBanner.Text = $"{LocalizationService.T("updater.update_available_title")} (v{latestVersion})";
                 lblUpdateBanner.Visible = true;
 
-                string msg = isMandatory 
-                    ? LocalizationService.T("updater.mandatory_msg") 
-                    : LocalizationService.T("updater.optional_msg");
+                string msg = LocalizationService.T("updater.update_available_msg").Replace("{version}", latestVersion);
 
                 var dialogResult = MessageBox.Show(
-                    msg.Replace("{version}", latestVersion),
-                    LocalizationService.T("updater.title"),
+                    msg,
+                    LocalizationService.T("updater.update_available_title"),
                     MessageBoxButtons.YesNo,
                     MessageBoxIcon.Information
                 );
@@ -241,17 +248,17 @@ namespace Nlk_Cheffie_Print.Views
                 if (dialogResult == DialogResult.Yes)
                 {
                     // Trigger download background worker in UI thread or another thread
-                    TriggerUpdateDownload(downloadUrl);
+                    TriggerUpdateDownload(downloadUrl, sha256);
                 }
             }));
         }
 
-        private void TriggerUpdateDownload(string downloadUrl)
+        private void TriggerUpdateDownload(string downloadUrl, string sha256)
         {
             // Simple visual prompt or direct start
             _ = Task.Run(async () =>
             {
-                await _updater!.DownloadAndInstallUpdateAsync(downloadUrl);
+                await _updater!.DownloadAndInstallUpdateAsync(downloadUrl, sha256);
             });
         }
 

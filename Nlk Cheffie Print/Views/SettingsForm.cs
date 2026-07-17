@@ -165,11 +165,18 @@ namespace Nlk_Cheffie_Print.Views
 
         private void btnOk_Click(object sender, EventArgs e)
         {
+            string apiUrl = txtApiUrl.Text.Trim();
+            if (!ConfigManager.IsSecureApiUrl(apiUrl))
+            {
+                MessageBox.Show("Sunucu API URL adresi HTTPS olmalıdır.", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             var app = ConfigManager.Current.App;
             app.DryRun = chkDryRun.Checked;
             app.GraphicMode = chkGraphicMode.Checked;
             app.AutoPrintEnabled = chkAutoPrint.Checked;
-            app.ApiBaseUrl = txtApiUrl.Text.Trim();
+            app.ApiBaseUrl = apiUrl;
 
             if (cmbAutoPrintRole.SelectedItem != null)
                 app.AutoPrintRole = ((KeyValuePair<string, string>)cmbAutoPrintRole.SelectedItem).Key;

@@ -17,6 +17,7 @@ namespace Nlk_Cheffie_Print.Core.Workers
         private static readonly ConcurrentQueue<PrintJob> Queue = new ConcurrentQueue<PrintJob>();
         private static readonly SemaphoreSlim Signal = new SemaphoreSlim(0);
         private static HashSet<string> _printedJobIds = new HashSet<string>();
+        private static readonly ConcurrentDictionary<string, byte> CancelledJobIds = new ConcurrentDictionary<string, byte>();
         private static bool _isRunning;
         private static CancellationTokenSource? _cts;
 
@@ -48,6 +49,13 @@ namespace Nlk_Cheffie_Print.Core.Workers
             AppendLog($"[QUEUED] JobId={job.JobId} Role={job.Role}");
         }
 
+        public static void Cancel(string jobId)
+        {
+            if (string.IsNullOrWhiteSpace(jobId)) return;
+            CancelledJobIds.TryAdd(jobId, 0);
+            AppendLog($"[CANCELLED] JobId={jobId}");
+        }
+
         private static async Task ProcessQueueLoop(CancellationToken token)
         {
             while (_isRunning && !token.IsCancellationRequested)
@@ -76,6 +84,12 @@ namespace Nlk_Cheffie_Print.Core.Workers
         {
             try
             {
+                if (!string.IsNullOrEmpty(job.JobId) && CancelledJobIds.TryRemove(job.JobId, out _))
+                {
+                    AppendLog($"[CANCELLED] JobId={job.JobId} was removed before printing.");
+                    return;
+                }
+
                 // 1. Check duplicate shield
                 if (!string.IsNullOrEmpty(job.JobId) && _printedJobIds.Contains(job.JobId))
                 {
@@ -267,7 +281,7 @@ namespace Nlk_Cheffie_Print.Core.Workers
                 entry["items"] = itemsLog;
 
                 string line = JsonSerializer.Serialize(entry) + "\n";
-                File.AppendAllText(logPath, line);
+                LogMaintenance.Append(logPath, line, 10 * 1024 * 1024);
             }
             catch (Exception ex)
             {
@@ -343,7 +357,7 @@ namespace Nlk_Cheffie_Print.Core.Workers
                 Directory.CreateDirectory(logDir);
                 string logFile = Path.Combine(logDir, "print_out.txt");
                 string line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}\n";
-                File.AppendAllText(logFile, line);
+                LogMaintenance.Append(logFile, line, 2 * 1024 * 1024);
             }
             catch
             {

@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -130,11 +131,12 @@ namespace Nlk_Cheffie_Print.Views
 
                 _loginServer = new LocalLoginServer();
                 _loginServer.TokenReceived += OnBrowserTokenReceived;
-                int port = _loginServer.Start();
+                string state = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+                int port = _loginServer.Start(state);
 
                 // Construct auth URL exactly as Python does:
                 // https://nlkmenu.com/admin/desktop/authorize?callback=http%3A//127.0.0.1%3A<port>/callback
-                string callbackUrl = $"http://127.0.0.1:{port}/callback";
+                string callbackUrl = $"http://127.0.0.1:{port}/callback?state={Uri.EscapeDataString(state)}";
                 string baseUrl  = ConfigManager.Current.App.ApiBaseUrl.TrimEnd('/');
                 string panelUrl = baseUrl.Replace("api.", "").Replace("/api", "");
                 string authUrl  = $"{panelUrl}/admin/desktop/authorize?callback={Uri.EscapeDataString(callbackUrl)}";
@@ -203,6 +205,11 @@ namespace Nlk_Cheffie_Print.Views
         private async Task VerifyAndConnect(string token)
         {
             string baseUrl = ConfigManager.Current.App.ApiBaseUrl.TrimEnd('/');
+            if (!ConfigManager.IsSecureApiUrl(baseUrl))
+            {
+                MessageBox.Show("Sunucu adresi HTTPS olmalıdır.", "Güvenli Bağlantı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
             string verifyUrl = $"{baseUrl}/printer/verify-token";
 
             try

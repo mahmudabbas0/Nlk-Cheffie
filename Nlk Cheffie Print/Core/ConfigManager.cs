@@ -3,11 +3,14 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Collections.Generic;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Nlk_Cheffie_Print.Core
 {
     public class AppConfigData
     {
+        private string _deviceToken = "";
         [JsonPropertyName("theme")]
         public string Theme { get; set; } = "dark";
 
@@ -26,11 +29,40 @@ namespace Nlk_Cheffie_Print.Core
         [JsonPropertyName("language")]
         public string Language { get; set; } = "tr";
 
-        [JsonPropertyName("device_token")]
-        public string DeviceToken { get; set; } = "";
+        [JsonIgnore]
+        public string DeviceToken
+        {
+            get => _deviceToken;
+            set => _deviceToken = value ?? "";
+        }
 
-        [JsonPropertyName("settings_password")]
-        public string SettingsPassword { get; set; } = "";
+        // Legacy plain-text value is accepted when reading an existing configuration,
+        // but never written again. New installations use the current Windows user's DPAPI key.
+        [JsonPropertyName("device_token")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? LegacyDeviceToken
+        {
+            get => null;
+            set
+            {
+                if (!string.IsNullOrWhiteSpace(value) && string.IsNullOrEmpty(_deviceToken))
+                {
+                    _deviceToken = value;
+                }
+            }
+        }
+
+        [JsonPropertyName("device_token_protected")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? ProtectedDeviceToken
+        {
+            get => ProtectToken(_deviceToken);
+            set
+            {
+                string? token = UnprotectToken(value);
+                if (!string.IsNullOrEmpty(token)) _deviceToken = token;
+            }
+        }
 
         [JsonPropertyName("api_base_url")]
         public string ApiBaseUrl { get; set; } = "https://api.nlkmenu.com/api";
@@ -55,6 +87,34 @@ namespace Nlk_Cheffie_Print.Core
 
         [JsonPropertyName("encoding_name")]
         public string EncodingName { get; set; } = "ibm857";
+
+        private static string? ProtectToken(string token)
+        {
+            if (string.IsNullOrEmpty(token)) return null;
+            try
+            {
+                byte[] encrypted = ProtectedData.Protect(Encoding.UTF8.GetBytes(token), null, DataProtectionScope.CurrentUser);
+                return Convert.ToBase64String(encrypted);
+            }
+            catch (CryptographicException)
+            {
+                return null;
+            }
+        }
+
+        private static string? UnprotectToken(string? protectedToken)
+        {
+            if (string.IsNullOrWhiteSpace(protectedToken)) return null;
+            try
+            {
+                byte[] encrypted = Convert.FromBase64String(protectedToken);
+                return Encoding.UTF8.GetString(ProtectedData.Unprotect(encrypted, null, DataProtectionScope.CurrentUser));
+            }
+            catch (Exception ex) when (ex is CryptographicException or FormatException)
+            {
+                return null;
+            }
+        }
     }
 
     public class PrinterInfo
@@ -108,8 +168,18 @@ namespace Nlk_Cheffie_Print.Core
 
     public static class ConfigManager
     {
-        private static readonly string ConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
+        private static readonly string ConfigDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "NlkCheffiePrint");
+        private static readonly string ConfigPath = Path.Combine(ConfigDirectory, "config.json");
+        private static readonly string LegacyConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
         public static RootConfig Current { get; private set; } = new RootConfig();
+
+        public static bool IsSecureApiUrl(string? value)
+        {
+            return Uri.TryCreate(value, UriKind.Absolute, out var uri)
+                && uri.Scheme == Uri.UriSchemeHttps
+                && !string.IsNullOrWhiteSpace(uri.Host);
+        }
 
         static ConfigManager()
         {
@@ -120,9 +190,10 @@ namespace Nlk_Cheffie_Print.Core
         {
             try
             {
-                if (File.Exists(ConfigPath))
+                string sourcePath = File.Exists(ConfigPath) ? ConfigPath : LegacyConfigPath;
+                if (File.Exists(sourcePath))
                 {
-                    string json = File.ReadAllText(ConfigPath);
+                    string json = File.ReadAllText(sourcePath);
                     var loaded = JsonSerializer.Deserialize<RootConfig>(json);
                     if (loaded != null)
                     {
@@ -143,9 +214,21 @@ namespace Nlk_Cheffie_Print.Core
         {
             try
             {
+                Directory.CreateDirectory(ConfigDirectory);
+                if (!string.IsNullOrEmpty(Current.App.DeviceToken) && Current.App.ProtectedDeviceToken == null)
+                {
+                    throw new CryptographicException("Cihaz tokeni Windows kullanıcı korumasıyla saklanamadı.");
+                }
                 var options = new JsonSerializerOptions { WriteIndented = true };
                 string json = JsonSerializer.Serialize(Current, options);
-                File.WriteAllText(ConfigPath, json);
+                string temporaryPath = ConfigPath + ".tmp";
+                File.WriteAllText(temporaryPath, json, Encoding.UTF8);
+                File.Move(temporaryPath, ConfigPath, true);
+
+                if (File.Exists(LegacyConfigPath) && !string.Equals(LegacyConfigPath, ConfigPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    File.Delete(LegacyConfigPath);
+                }
             }
             catch (Exception ex)
             {

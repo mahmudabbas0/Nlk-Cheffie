@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -26,7 +25,6 @@ namespace Nlk_Cheffie_Print.Core.Net
             _seenOrderIds.Clear();
 
             Task.Run(() => RunApiPollLoop(_cts.Token));
-            Task.Run(() => RunRabbitMqPollLoop(_cts.Token));
         }
 
         public void Stop()
@@ -48,6 +46,13 @@ namespace Nlk_Cheffie_Print.Core.Net
                     string deviceToken = app.DeviceToken;
                     string baseUrl = app.ApiBaseUrl.TrimEnd('/');
                     string slug = app.RestaurantSlug;
+
+                    if (!ConfigManager.IsSecureApiUrl(baseUrl))
+                    {
+                        LogMessage("[API POLL ERROR] Güvenli olmayan API adresi reddedildi.");
+                        await Task.Delay(30000, token);
+                        continue;
+                    }
 
                     if (string.IsNullOrEmpty(deviceToken))
                     {
@@ -95,6 +100,7 @@ namespace Nlk_Cheffie_Print.Core.Net
 
                                         string oid = GetOrderNoOrId(order);
                                         if (string.IsNullOrEmpty(oid)) continue;
+                                        if (_seenOrderIds.Contains(oid)) continue;
 
                                         // Fetch details
                                         var detail = await FetchOrderDetail(client, baseUrl, oid, token);
@@ -104,6 +110,7 @@ namespace Nlk_Cheffie_Print.Core.Net
                                         if (string.IsNullOrEmpty(autoRole)) autoRole = "kitchen";
 
                                         OrderReceived?.Invoke(finalOrder, autoRole);
+                                        _seenOrderIds.Add(oid);
                                     }
                                 }
                             }
@@ -119,133 +126,6 @@ namespace Nlk_Cheffie_Print.Core.Net
                     await Task.Delay(backoff * 1000, token);
                     backoff = Math.Min(backoff * 2, 60);
                 }
-            }
-        }
-
-        private async Task RunRabbitMqPollLoop(CancellationToken token)
-        {
-            int backoff = 5;
-            string lastRestaurantId = "";
-
-            while (_isRunning && !token.IsCancellationRequested)
-            {
-                try
-                {
-                    var app = ConfigManager.Current.App;
-                    string deviceToken = app.DeviceToken;
-                    string restaurantId = app.RestaurantId;
-                    string autoRole = app.AutoPrintRole;
-
-                    if (string.IsNullOrEmpty(deviceToken) || string.IsNullOrEmpty(restaurantId))
-                    {
-                        await Task.Delay(5000, token);
-                        continue;
-                    }
-
-                    string queueName = $"restaurant_queue_{restaurantId}";
-                    string host = "mq.nlkmenu.com";
-                    string user = "nlkadmin";
-                    string pass = "CheffieMQ_2026_pX9#mR4!zT2_wK8";
-
-                    // Declare queue if restaurant changed
-                    if (restaurantId != lastRestaurantId)
-                    {
-                        lastRestaurantId = restaurantId;
-                        await DeclareRabbitMqQueue(host, user, pass, queueName, token);
-                    }
-
-                    using (var client = new HttpClient())
-                    {
-                        client.Timeout = TimeSpan.FromSeconds(5);
-                        client.DefaultRequestHeaders.Add("Accept", "application/json");
-                        client.DefaultRequestHeaders.Add("User-Agent", "CheffiePOS-PrintBridge/1.0");
-
-                        string authStr = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{user}:{pass}"));
-                        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authStr);
-
-                        var payload = new
-                        {
-                            count = 10,
-                            ackmode = "ack_requeue_false",
-                            encoding = "auto",
-                            truncate = 50000
-                        };
-
-                        string jsonPayload = JsonSerializer.Serialize(payload);
-                        var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
-
-                        string getUrl = $"https://{host}/api/queues/%2F/{queueName}/get";
-                        var response = await client.PostAsync(getUrl, content, token);
-
-                        if (response.IsSuccessStatusCode)
-                        {
-                            string json = await response.Content.ReadAsStringAsync(token);
-                            using (var doc = JsonDocument.Parse(json))
-                            {
-                                if (doc.RootElement.ValueKind == JsonValueKind.Array)
-                                {
-                                    foreach (var msg in doc.RootElement.EnumerateArray())
-                                    {
-                                        if (msg.TryGetProperty("payload", out var payloadProp))
-                                        {
-                                            string orderJson = payloadProp.GetString() ?? "";
-                                            if (!string.IsNullOrEmpty(orderJson))
-                                            {
-                                                using (var orderDoc = JsonDocument.Parse(orderJson))
-                                                {
-                                                    OrderReceived?.Invoke(orderDoc.RootElement.Clone(), autoRole);
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            backoff = 5;
-                        }
-                        else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                        {
-                            lastRestaurantId = ""; // Force redeclare
-                        }
-                    }
-
-                    await Task.Delay(3000, token);
-                }
-                catch (Exception ex)
-                {
-                    LogMessage($"[RABBITMQ POLL ERROR] {ex.Message}");
-                    await Task.Delay(backoff * 1000, token);
-                    backoff = Math.Min(backoff * 2, 60);
-                }
-            }
-        }
-
-        private async Task DeclareRabbitMqQueue(string host, string user, string pass, string queueName, CancellationToken token)
-        {
-            try
-            {
-                using (var client = new HttpClient())
-                {
-                    client.Timeout = TimeSpan.FromSeconds(5);
-                    string authStr = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{user}:{pass}"));
-                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authStr);
-
-                    var payload = new
-                    {
-                        auto_delete = false,
-                        durable = true
-                    };
-
-                    string jsonPayload = JsonSerializer.Serialize(payload);
-                    var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
-
-                    string putUrl = $"https://{host}/api/queues/%2F/{queueName}";
-                    await client.PutAsync(putUrl, content, token);
-                    LogMessage($"[RABBITMQ] Declared queue {queueName}");
-                }
-            }
-            catch (Exception ex)
-            {
-                LogMessage($"[RABBITMQ DECLARE ERROR] {ex.Message}");
             }
         }
 
@@ -398,7 +278,7 @@ namespace Nlk_Cheffie_Print.Core.Net
                 Directory.CreateDirectory(logDir);
                 string logFile = Path.Combine(logDir, "ws_client.log");
                 string line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {message}\n";
-                File.AppendAllText(logFile, line);
+                LogMaintenance.Append(logFile, line, 2 * 1024 * 1024);
             }
             catch
             {
