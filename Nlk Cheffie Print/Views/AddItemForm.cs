@@ -79,14 +79,17 @@ namespace Nlk_Cheffie_Print.Views
                 Button btn = new Button
                 {
                     Text = kvp.Value,
-                    Width = 190,
-                    Height = 35,
+                    Width = 130,
+                    Height = 38,
+                    Margin = new Padding(3),
                     FlatStyle = FlatStyle.Flat,
                     BackColor = ThemeManager.ColorFieldBg,
                     ForeColor = ThemeManager.ColorText,
                     Cursor = Cursors.Hand
                 };
                 btn.FlatAppearance.BorderColor = ThemeManager.ColorBorder;
+                btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(48, 48, 52);
+                btn.FlatAppearance.MouseDownBackColor = Color.FromArgb(20, 20, 22);
                 
                 string code = kvp.Key;
                 btn.Click += (s, e) => SelectVariable(code);

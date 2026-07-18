@@ -119,12 +119,13 @@ namespace Nlk_Cheffie_Print.Views.Controls
             // btnPrevPage
             // 
             this.btnPrevPage.Anchor = System.Windows.Forms.AnchorStyles.None;
-            this.btnPrevPage.Location = new System.Drawing.Point(290, 6);
+            this.btnPrevPage.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Bold);
+            this.btnPrevPage.Location = new System.Drawing.Point(320, 6);
             this.btnPrevPage.Name = "btnPrevPage";
-            this.btnPrevPage.Size = new System.Drawing.Size(70, 28);
+            this.btnPrevPage.Size = new System.Drawing.Size(35, 28);
             this.btnPrevPage.TabIndex = 0;
             this.btnPrevPage.Tag = "Secondary";
-            this.btnPrevPage.Text = "◄ Prev";
+            this.btnPrevPage.Text = "‹";
             this.btnPrevPage.UseVisualStyleBackColor = true;
             this.btnPrevPage.Click += new System.EventHandler(this.btnPrevPage_Click);
             // 
@@ -132,23 +133,25 @@ namespace Nlk_Cheffie_Print.Views.Controls
             // 
             this.lblPageInfo.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.lblPageInfo.AutoSize = false;
-            this.lblPageInfo.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.lblPageInfo.Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Bold);
             this.lblPageInfo.Location = new System.Drawing.Point(365, 10);
             this.lblPageInfo.Name = "lblPageInfo";
-            this.lblPageInfo.Size = new System.Drawing.Size(70, 20);
+            this.lblPageInfo.Size = new System.Drawing.Size(60, 20);
             this.lblPageInfo.TabIndex = 1;
             this.lblPageInfo.Text = "1 / 1";
             this.lblPageInfo.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // btnNextPage
             // 
+            // 
             this.btnNextPage.Anchor = System.Windows.Forms.AnchorStyles.None;
-            this.btnNextPage.Location = new System.Drawing.Point(440, 6);
+            this.btnNextPage.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Bold);
+            this.btnNextPage.Location = new System.Drawing.Point(435, 6);
             this.btnNextPage.Name = "btnNextPage";
-            this.btnNextPage.Size = new System.Drawing.Size(70, 28);
+            this.btnNextPage.Size = new System.Drawing.Size(35, 28);
             this.btnNextPage.TabIndex = 2;
             this.btnNextPage.Tag = "Secondary";
-            this.btnNextPage.Text = "Next ►";
+            this.btnNextPage.Text = "›";
             this.btnNextPage.UseVisualStyleBackColor = true;
             this.btnNextPage.Click += new System.EventHandler(this.btnNextPage_Click);
             // 

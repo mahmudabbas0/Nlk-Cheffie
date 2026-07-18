@@ -320,7 +320,7 @@ namespace Nlk_Cheffie_Print.Views
             {
                 if (btn == activeBtn)
                 {
-                    btn.BackColor = Color.FromArgb(20, Color.White);
+                    btn.BackColor = Color.FromArgb(24, ThemeManager.ColorAccent);
                     btn.ForeColor = ThemeManager.ColorAccent;
                     btn.Font = ThemeManager.FontBodyBold;
                 }

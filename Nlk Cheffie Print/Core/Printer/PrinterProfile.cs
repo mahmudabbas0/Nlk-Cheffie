@@ -51,7 +51,7 @@ namespace Nlk_Cheffie_Print.Core.Printer
 
         public static string InferProfileId(PrinterInfo? printer)
         {
-            if (printer != null && printer.Type.Equals("win32_gdi", StringComparison.OrdinalIgnoreCase))
+            if (printer != null && string.Equals(printer.Type, "win32_gdi", StringComparison.OrdinalIgnoreCase))
             {
                 return WindowsGdi;
             }

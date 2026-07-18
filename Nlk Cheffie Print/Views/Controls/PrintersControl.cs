@@ -29,8 +29,41 @@ namespace Nlk_Cheffie_Print.Views.Controls
             lstPrinters.BackColor = ThemeManager.ColorFieldBg;
             lstPrinters.ForeColor = ThemeManager.ColorText;
 
+            lstPrinters.DrawMode = DrawMode.OwnerDrawFixed;
+            lstPrinters.ItemHeight = 36;
+            lstPrinters.DrawItem += lstPrinters_DrawItem;
+
             TranslateUI();
             LoadPrintersFromConfig();
+        }
+
+        private void lstPrinters_DrawItem(object? sender, DrawItemEventArgs e)
+        {
+            if (e.Index < 0 || e.Index >= lstPrinters.Items.Count) return;
+
+            bool isSelected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
+
+            Color bgColor = isSelected ? Color.FromArgb(45, ThemeManager.ColorAccent) : ThemeManager.ColorFieldBg;
+            Color textColor = isSelected ? ThemeManager.ColorAccent : ThemeManager.ColorText;
+
+            using (var bgBrush = new SolidBrush(bgColor))
+            {
+                e.Graphics.FillRectangle(bgBrush, e.Bounds);
+            }
+
+            if (isSelected)
+            {
+                using (var indicatorBrush = new SolidBrush(ThemeManager.ColorAccent))
+                {
+                    e.Graphics.FillRectangle(indicatorBrush, new Rectangle(e.Bounds.X, e.Bounds.Y, 4, e.Bounds.Height));
+                }
+            }
+
+            string text = lstPrinters.Items[e.Index]?.ToString() ?? "";
+            Rectangle textRect = new Rectangle(e.Bounds.X + 12, e.Bounds.Y, e.Bounds.Width - 16, e.Bounds.Height);
+
+            TextRenderer.DrawText(e.Graphics, text, ThemeManager.FontBodyBold, textRect, textColor,
+                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
         }
 
         public void TranslateUI()
@@ -71,6 +104,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
 
         private void RefreshInstalledPrinters(bool showResult)
         {
+            ConfigManager.Current.Printers.Available ??= new List<PrinterInfo>();
             var printers = ConfigManager.Current.Printers.Available;
             var previousRoleIds = new Dictionary<string, string>
             {
@@ -80,7 +114,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
             };
 
             var networkPrinters = printers
-                .Where(p => p.Type.Equals("network", StringComparison.OrdinalIgnoreCase) || p.Type.Equals("ip", StringComparison.OrdinalIgnoreCase))
+                .Where(p => p != null && (string.Equals(p.Type, "network", StringComparison.OrdinalIgnoreCase) || string.Equals(p.Type, "ip", StringComparison.OrdinalIgnoreCase)))
                 .ToList();
 
             var windowsPrinters = PrinterSettings.InstalledPrinters
@@ -88,8 +122,9 @@ namespace Nlk_Cheffie_Print.Views.Controls
                 .OrderBy(name => name, StringComparer.CurrentCultureIgnoreCase)
                 .Select(name =>
                 {
-                    var existing = printers.FirstOrDefault(p => p.Id.Equals(name, StringComparison.OrdinalIgnoreCase)
-                        || p.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+                    var existing = printers.FirstOrDefault(p => p != null &&
+                        (string.Equals(p.Id, name, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase)));
                     var detected = new PrinterInfo { Name = name, Id = name, Type = "win32" };
                     detected.Profile = existing?.Profile ?? PrinterProfileResolver.InferProfileId(detected);
                     return detected;
@@ -100,20 +135,21 @@ namespace Nlk_Cheffie_Print.Views.Controls
             foreach (var role in previousRoleIds)
             {
                 string selectedId = role.Value;
-                var previous = printers.FirstOrDefault(p => p.Id == selectedId);
+                var previous = printers.FirstOrDefault(p => p != null && string.Equals(p.Id, selectedId, StringComparison.OrdinalIgnoreCase));
                 string previousName = previous?.Name ?? string.Empty;
                 string normalizedName = previousName.Replace(" (Thermal/RAW)", string.Empty, StringComparison.OrdinalIgnoreCase);
 
                 var installed = windowsPrinters.FirstOrDefault(p =>
-                    p.Name.Equals(previousName, StringComparison.OrdinalIgnoreCase) ||
-                    p.Name.Equals(normalizedName, StringComparison.OrdinalIgnoreCase));
+                    string.Equals(p.Name, previousName, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(p.Name, normalizedName, StringComparison.OrdinalIgnoreCase));
 
                 migratedRoleIds[role.Key] = installed?.Id ?? selectedId;
             }
 
             printers.Clear();
             printers.AddRange(windowsPrinters);
-            printers.AddRange(networkPrinters.Where(network => !printers.Any(p => p.Id.Equals(network.Id, StringComparison.OrdinalIgnoreCase))));
+            printers.AddRange(networkPrinters.Where(network => !printers.Any(p =>
+                p != null && string.Equals(p.Id, network.Id, StringComparison.OrdinalIgnoreCase))));
 
             ConfigManager.Current.Printers.Kitchen = migratedRoleIds["kitchen"];
             ConfigManager.Current.Printers.Cashier = migratedRoleIds["cashier"];
@@ -124,7 +160,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
             foreach (var printer in printers)
             {
                 var profile = PrinterProfileResolver.Resolve(printer);
-                string name = printer.Type.Equals("win32", StringComparison.OrdinalIgnoreCase)
+                string name = string.Equals(printer.Type, "win32", StringComparison.OrdinalIgnoreCase)
                     ? printer.Name
                     : $"{printer.Name} [{printer.Id}]";
                 lstPrinters.Items.Add($"{name} — {profile.DisplayName}");
@@ -241,25 +277,30 @@ namespace Nlk_Cheffie_Print.Views.Controls
         private void btnProfile_Click(object sender, EventArgs e)
         {
             int index = lstPrinters.SelectedIndex;
-            if (index < 0 || index >= ConfigManager.Current.Printers.Available.Count)
+            var printers = ConfigManager.Current.Printers.Available;
+            if (index < 0 || printers == null || index >= printers.Count)
             {
                 MessageBox.Show("Lütfen önce listeden bir yazıcı seçin.", "Yazıcı Profili", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
-            var printer = ConfigManager.Current.Printers.Available[index];
-            var menu = new ContextMenuStrip();
-            AddProfileMenuItem(menu, printer, PrinterProfileResolver.EscPos58);
-            AddProfileMenuItem(menu, printer, PrinterProfileResolver.EscPos80);
-            if (printer.Type.Equals("win32", StringComparison.OrdinalIgnoreCase) || printer.Type.Equals("win32_gdi", StringComparison.OrdinalIgnoreCase))
+            var printer = printers[index];
+            if (printer == null)
             {
-                AddProfileMenuItem(menu, printer, PrinterProfileResolver.WindowsGdi);
+                MessageBox.Show("Seçili yazıcı kaydı geçersiz.", "Yazıcı Profili", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
             }
-            menu.Closed += (_, _) => menu.Dispose();
+            var menu = new ContextMenuStrip();
+            AddProfileMenuItem(menu, printer, PrinterProfileResolver.EscPos58, index);
+            AddProfileMenuItem(menu, printer, PrinterProfileResolver.EscPos80, index);
+            if (string.Equals(printer.Type, "win32", StringComparison.OrdinalIgnoreCase) || string.Equals(printer.Type, "win32_gdi", StringComparison.OrdinalIgnoreCase))
+            {
+                AddProfileMenuItem(menu, printer, PrinterProfileResolver.WindowsGdi, index);
+            }
             menu.Show(btnProfile, new Point(0, btnProfile.Height));
         }
 
-        private void AddProfileMenuItem(ContextMenuStrip menu, PrinterInfo printer, string profileId)
+        private void AddProfileMenuItem(ContextMenuStrip menu, PrinterInfo printer, string profileId, int selectedIndex)
         {
             var profile = PrinterProfileResolver.Resolve(new PrinterInfo { Profile = profileId });
             var item = new ToolStripMenuItem(profile.DisplayName)
@@ -268,9 +309,33 @@ namespace Nlk_Cheffie_Print.Views.Controls
             };
             item.Click += (_, _) =>
             {
-                printer.Profile = profileId;
-                ConfigManager.Save();
-                RefreshInstalledPrinters(showResult: false);
+                // Defer execution after menu has completely closed to avoid native WndProc access errors
+                BeginInvoke(new Action(() =>
+                {
+                    try
+                    {
+                        printer.Profile = profileId;
+                        ConfigManager.Save();
+
+                        if (!IsDisposed)
+                        {
+                            RefreshInstalledPrinters(showResult: false);
+                            if (selectedIndex >= 0 && selectedIndex < lstPrinters.Items.Count)
+                            {
+                                lstPrinters.SelectedIndex = selectedIndex;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Printer profile update failed: {ex}");
+                        MessageBox.Show(
+                            $"Yazıcı profili güncellenemedi: {ex.Message}",
+                            "Yazıcı Profili",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Error);
+                    }
+                }));
             };
             menu.Items.Add(item);
         }

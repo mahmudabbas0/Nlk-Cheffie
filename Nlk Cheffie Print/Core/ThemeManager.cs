@@ -113,11 +113,11 @@ namespace Nlk_Cheffie_Print.Core
             {
                 button.Font = FontBodyBold;
                 button.FlatStyle = FlatStyle.Flat;
-                button.FlatAppearance.BorderSize = 1;
                 button.Cursor = Cursors.Hand;
 
                 if (button.Tag?.ToString() == "Primary")
                 {
+                    button.FlatAppearance.BorderSize = 1;
                     button.BackColor = ColorAccent;
                     button.ForeColor = Color.Black;
                     button.FlatAppearance.BorderColor = ColorAccent;
@@ -126,6 +126,7 @@ namespace Nlk_Cheffie_Print.Core
                 }
                 else if (button.Tag?.ToString() == "Success")
                 {
+                    button.FlatAppearance.BorderSize = 1;
                     button.BackColor = ColorSuccess;
                     button.ForeColor = Color.White;
                     button.FlatAppearance.BorderColor = ColorSuccess;
@@ -134,6 +135,7 @@ namespace Nlk_Cheffie_Print.Core
                 }
                 else if (button.Tag?.ToString() == "Danger")
                 {
+                    button.FlatAppearance.BorderSize = 1;
                     button.BackColor = Color.FromArgb(40, ColorDanger);
                     button.ForeColor = ColorDanger;
                     button.FlatAppearance.BorderColor = Color.FromArgb(80, ColorDanger);
@@ -142,20 +144,40 @@ namespace Nlk_Cheffie_Print.Core
                 }
                 else if (button.Tag?.ToString() == "Secondary")
                 {
-                    button.BackColor = ColorCard;
+                    button.FlatAppearance.BorderSize = 1;
+                    button.BackColor = ColorFieldBg; // Distinct from ColorCard
                     button.ForeColor = ColorText;
                     button.FlatAppearance.BorderColor = ColorBorder;
-                    button.FlatAppearance.MouseOverBackColor = Color.FromArgb(32, 32, 35);
-                    button.FlatAppearance.MouseDownBackColor = Color.FromArgb(18, 18, 20);
+                    button.FlatAppearance.MouseOverBackColor = Color.FromArgb(48, 48, 52); // Premium lighter gray hover
+                    button.FlatAppearance.MouseDownBackColor = Color.FromArgb(20, 20, 22);
+                }
+                else if (button.Tag?.ToString() == "Nav")
+                {
+                    // Navigation sidebar buttons. Let MainForm control active state background, 
+                    // but enforce flat presentation and hover styles here.
+                    button.FlatAppearance.BorderSize = 0;
+                    button.FlatAppearance.MouseOverBackColor = Color.FromArgb(30, ColorAccent);
+                    button.FlatAppearance.MouseDownBackColor = Color.FromArgb(50, ColorAccent);
                 }
                 else
                 {
+                    button.FlatAppearance.BorderSize = 1;
                     button.BackColor = ColorFieldBg;
                     button.ForeColor = ColorText;
                     button.FlatAppearance.BorderColor = ColorBorder;
-                    button.FlatAppearance.MouseOverBackColor = Color.FromArgb(38, 38, 41);
+                    button.FlatAppearance.MouseOverBackColor = Color.FromArgb(48, 48, 52);
                     button.FlatAppearance.MouseDownBackColor = Color.FromArgb(20, 20, 22);
                 }
+            }
+            else if (control is CheckBox checkBox)
+            {
+                checkBox.FlatStyle = FlatStyle.Flat;
+                checkBox.ForeColor = ColorText;
+                checkBox.BackColor = Color.Transparent;
+                checkBox.FlatAppearance.BorderColor = ColorBorder;
+                checkBox.FlatAppearance.CheckedBackColor = ColorAccent;
+                checkBox.FlatAppearance.MouseDownBackColor = ColorAccentPressed;
+                checkBox.FlatAppearance.MouseOverBackColor = Color.FromArgb(30, ColorAccent);
             }
             else if (control is TextBox textBox)
             {

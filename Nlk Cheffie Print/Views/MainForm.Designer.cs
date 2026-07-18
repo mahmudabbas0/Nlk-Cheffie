@@ -75,6 +75,7 @@ namespace Nlk_Cheffie_Print.Views
             this.btnNavDesigner.Name = "btnNavDesigner";
             this.btnNavDesigner.Size = new System.Drawing.Size(200, 45);
             this.btnNavDesigner.TabIndex = 3;
+            this.btnNavDesigner.Tag = "Nav";
             this.btnNavDesigner.Text = "Fiş Tasarımı";
             this.btnNavDesigner.UseVisualStyleBackColor = true;
             this.btnNavDesigner.Click += new System.EventHandler(this.btnNavDesigner_Click);
@@ -85,6 +86,7 @@ namespace Nlk_Cheffie_Print.Views
             this.btnNavPrinters.Name = "btnNavPrinters";
             this.btnNavPrinters.Size = new System.Drawing.Size(200, 45);
             this.btnNavPrinters.TabIndex = 2;
+            this.btnNavPrinters.Tag = "Nav";
             this.btnNavPrinters.Text = "Yazıcılar";
             this.btnNavPrinters.UseVisualStyleBackColor = true;
             this.btnNavPrinters.Click += new System.EventHandler(this.btnNavPrinters_Click);
@@ -95,6 +97,7 @@ namespace Nlk_Cheffie_Print.Views
             this.btnNavOrders.Name = "btnNavOrders";
             this.btnNavOrders.Size = new System.Drawing.Size(200, 45);
             this.btnNavOrders.TabIndex = 1;
+            this.btnNavOrders.Tag = "Nav";
             this.btnNavOrders.Text = "Siparişler";
             this.btnNavOrders.UseVisualStyleBackColor = true;
             this.btnNavOrders.Click += new System.EventHandler(this.btnNavOrders_Click);

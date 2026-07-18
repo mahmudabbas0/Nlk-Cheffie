@@ -730,4 +730,86 @@ namespace Nlk_Cheffie_Print.Core
             }
         }
     }
+
+    public class FlatCheckBox : CheckBox
+    {
+        private bool _isHovered = false;
+
+        public FlatCheckBox()
+        {
+            SetStyle(ControlStyles.UserPaint |
+                     ControlStyles.AllPaintingInWmPaint |
+                     ControlStyles.OptimizedDoubleBuffer |
+                     ControlStyles.ResizeRedraw, true);
+            this.Cursor = Cursors.Hand;
+            this.Font = ThemeManager.FontBody;
+            this.ForeColor = ThemeManager.ColorText;
+        }
+
+        protected override void OnMouseEnter(EventArgs e)
+        {
+            _isHovered = true;
+            Invalidate();
+            base.OnMouseEnter(e);
+        }
+
+        protected override void OnMouseLeave(EventArgs e)
+        {
+            _isHovered = false;
+            Invalidate();
+            base.OnMouseLeave(e);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+
+            // Clear background with parent container background or card color
+            Color parentBg = Parent?.BackColor ?? ThemeManager.ColorCard;
+            g.Clear(parentBg);
+
+            int boxSize = 18;
+            int boxY = (Height - boxSize) / 2;
+            var boxRect = new Rectangle(0, boxY, boxSize, boxSize);
+
+            if (Checked)
+            {
+                // Filled Amber/Orange box
+                Color boxColor = _isHovered ? ThemeManager.ColorAccentHover : ThemeManager.ColorAccent;
+                using (var fillBrush = new SolidBrush(boxColor))
+                {
+                    g.FillRectangle(fillBrush, boxRect);
+                }
+
+                // Sharp black checkmark (✓)
+                using (var checkPen = new Pen(Color.FromArgb(15, 15, 16), 2.4f))
+                {
+                    Point p1 = new Point(boxRect.X + 4, boxRect.Y + 9);
+                    Point p2 = new Point(boxRect.X + 7, boxRect.Y + 13);
+                    Point p3 = new Point(boxRect.X + 14, boxRect.Y + 5);
+                    g.DrawLines(checkPen, new[] { p1, p2, p3 });
+                }
+            }
+            else
+            {
+                Color borderCol = _isHovered ? ThemeManager.ColorAccent : Color.FromArgb(100, 100, 108);
+                using (var bgBrush = new SolidBrush(Color.FromArgb(40, 40, 44)))
+                using (var borderPen = new Pen(borderCol, 1.5f))
+                {
+                    g.FillRectangle(bgBrush, boxRect);
+                    g.DrawRectangle(borderPen, boxRect);
+                }
+            }
+
+            // Draw label text neatly aligned to the right of check box
+            if (!string.IsNullOrEmpty(Text))
+            {
+                var textRect = new Rectangle(boxSize + 8, 0, Width - (boxSize + 8), Height);
+                TextRenderer.DrawText(g, Text, Font, textRect, ForeColor,
+                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.WordBreak);
+            }
+        }
+    }
 }

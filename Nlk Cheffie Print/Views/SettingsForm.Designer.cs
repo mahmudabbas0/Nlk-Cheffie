@@ -33,9 +33,9 @@ namespace Nlk_Cheffie_Print.Views
             this.lblLanguage = new System.Windows.Forms.Label();
             this.cmbAutoPrintRole = new Nlk_Cheffie_Print.Core.FlatComboBox();
             this.lblAutoPrintRole = new System.Windows.Forms.Label();
-            this.chkAutoPrint = new System.Windows.Forms.CheckBox();
-            this.chkGraphicMode = new System.Windows.Forms.CheckBox();
-            this.chkDryRun = new System.Windows.Forms.CheckBox();
+            this.chkAutoPrint = new Nlk_Cheffie_Print.Core.FlatCheckBox();
+            this.chkGraphicMode = new Nlk_Cheffie_Print.Core.FlatCheckBox();
+            this.chkDryRun = new Nlk_Cheffie_Print.Core.FlatCheckBox();
             this.lblGeneralTitle = new System.Windows.Forms.Label();
             this.pnlConnectionCard = new System.Windows.Forms.Panel();
             this.btnResetConnection = new System.Windows.Forms.Button();
@@ -303,9 +303,9 @@ namespace Nlk_Cheffie_Print.Views
 
         private System.Windows.Forms.Panel pnlGeneralCard;
         private System.Windows.Forms.Label lblGeneralTitle;
-        private System.Windows.Forms.CheckBox chkDryRun;
-        private System.Windows.Forms.CheckBox chkGraphicMode;
-        private System.Windows.Forms.CheckBox chkAutoPrint;
+        private Nlk_Cheffie_Print.Core.FlatCheckBox chkDryRun;
+        private Nlk_Cheffie_Print.Core.FlatCheckBox chkGraphicMode;
+        private Nlk_Cheffie_Print.Core.FlatCheckBox chkAutoPrint;
         private System.Windows.Forms.Label lblAutoPrintRole;
         private Nlk_Cheffie_Print.Core.FlatComboBox cmbAutoPrintRole;
         private System.Windows.Forms.Label lblLanguage;
