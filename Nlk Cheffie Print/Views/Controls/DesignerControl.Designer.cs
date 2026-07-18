@@ -71,16 +71,16 @@ namespace Nlk_Cheffie_Print.Views.Controls
             this.pnlLeftSidebar.Dock = System.Windows.Forms.DockStyle.Left;
             this.pnlLeftSidebar.Location = new System.Drawing.Point(0, 0);
             this.pnlLeftSidebar.Name = "pnlLeftSidebar";
-            this.pnlLeftSidebar.Size = new System.Drawing.Size(260, 570);
+            this.pnlLeftSidebar.Size = new System.Drawing.Size(290, 610);
             this.pnlLeftSidebar.TabIndex = 0;
             // 
             // btnSaveDesign
             // 
             this.btnSaveDesign.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnSaveDesign.Location = new System.Drawing.Point(15, 525);
+            this.btnSaveDesign.Location = new System.Drawing.Point(15, 565);
             this.btnSaveDesign.Name = "btnSaveDesign";
-            this.btnSaveDesign.Size = new System.Drawing.Size(230, 35);
+            this.btnSaveDesign.Size = new System.Drawing.Size(260, 35);
             this.btnSaveDesign.TabIndex = 11;
             this.btnSaveDesign.Tag = "Primary";
             this.btnSaveDesign.Text = "Tasarımı Kaydet";
@@ -100,9 +100,9 @@ namespace Nlk_Cheffie_Print.Views.Controls
             // 
             // btnAddFooter
             // 
-            this.btnAddFooter.Location = new System.Drawing.Point(15, 355);
+            this.btnAddFooter.Location = new System.Drawing.Point(15, 401);
             this.btnAddFooter.Name = "btnAddFooter";
-            this.btnAddFooter.Size = new System.Drawing.Size(230, 25);
+            this.btnAddFooter.Size = new System.Drawing.Size(260, 25);
             this.btnAddFooter.TabIndex = 9;
             this.btnAddFooter.Tag = "Secondary";
             this.btnAddFooter.Text = "+ Add Item to Footer";
@@ -111,9 +111,9 @@ namespace Nlk_Cheffie_Print.Views.Controls
             // 
             // lstFooter
             // 
-            this.lstFooter.Location = new System.Drawing.Point(15, 385);
+            this.lstFooter.Location = new System.Drawing.Point(15, 429);
             this.lstFooter.Name = "lstFooter";
-            this.lstFooter.Size = new System.Drawing.Size(230, 90);
+            this.lstFooter.Size = new System.Drawing.Size(260, 125);
             this.lstFooter.TabIndex = 8;
             this.lstFooter.SelectedIndexChanged += new System.EventHandler(this.lstFooter_SelectedIndexChanged);
             this.lstFooter.DoubleClick += new System.EventHandler(this.lstFooter_DoubleClick);
@@ -123,7 +123,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
             this.lblFooterSection.AutoSize = true;
             this.lblFooterSection.Font = new System.Drawing.Font("Segoe UI", 8.5f, System.Drawing.FontStyle.Bold);
             this.lblFooterSection.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(142)))), ((int)(((byte)(142)))), ((int)(((byte)(147)))));
-            this.lblFooterSection.Location = new System.Drawing.Point(15, 335);
+            this.lblFooterSection.Location = new System.Drawing.Point(15, 383);
             this.lblFooterSection.Name = "lblFooterSection";
             this.lblFooterSection.Size = new System.Drawing.Size(86, 15);
             this.lblFooterSection.TabIndex = 7;
@@ -132,9 +132,9 @@ namespace Nlk_Cheffie_Print.Views.Controls
             // 
             // btnAddBody
             // 
-            this.btnAddBody.Location = new System.Drawing.Point(15, 200);
+            this.btnAddBody.Location = new System.Drawing.Point(15, 223);
             this.btnAddBody.Name = "btnAddBody";
-            this.btnAddBody.Size = new System.Drawing.Size(230, 25);
+            this.btnAddBody.Size = new System.Drawing.Size(260, 25);
             this.btnAddBody.TabIndex = 6;
             this.btnAddBody.Tag = "Secondary";
             this.btnAddBody.Text = "+ Add Item to Body";
@@ -143,9 +143,9 @@ namespace Nlk_Cheffie_Print.Views.Controls
             // 
             // lstBody
             // 
-            this.lstBody.Location = new System.Drawing.Point(15, 230);
+            this.lstBody.Location = new System.Drawing.Point(15, 251);
             this.lstBody.Name = "lstBody";
-            this.lstBody.Size = new System.Drawing.Size(230, 90);
+            this.lstBody.Size = new System.Drawing.Size(260, 125);
             this.lstBody.TabIndex = 5;
             this.lstBody.SelectedIndexChanged += new System.EventHandler(this.lstBody_SelectedIndexChanged);
             this.lstBody.DoubleClick += new System.EventHandler(this.lstBody_DoubleClick);
@@ -155,7 +155,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
             this.lblBodySection.AutoSize = true;
             this.lblBodySection.Font = new System.Drawing.Font("Segoe UI", 8.5f, System.Drawing.FontStyle.Bold);
             this.lblBodySection.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(142)))), ((int)(((byte)(142)))), ((int)(((byte)(147)))));
-            this.lblBodySection.Location = new System.Drawing.Point(15, 180);
+            this.lblBodySection.Location = new System.Drawing.Point(15, 205);
             this.lblBodySection.Name = "lblBodySection";
             this.lblBodySection.Size = new System.Drawing.Size(78, 15);
             this.lblBodySection.TabIndex = 4;
@@ -166,7 +166,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
             // 
             this.btnAddHeader.Location = new System.Drawing.Point(15, 45);
             this.btnAddHeader.Name = "btnAddHeader";
-            this.btnAddHeader.Size = new System.Drawing.Size(230, 25);
+            this.btnAddHeader.Size = new System.Drawing.Size(260, 25);
             this.btnAddHeader.TabIndex = 3;
             this.btnAddHeader.Tag = "Secondary";
             this.btnAddHeader.Text = "+ Add Item to Header";
@@ -175,9 +175,9 @@ namespace Nlk_Cheffie_Print.Views.Controls
             // 
             // lstHeader
             // 
-            this.lstHeader.Location = new System.Drawing.Point(15, 75);
+            this.lstHeader.Location = new System.Drawing.Point(15, 73);
             this.lstHeader.Name = "lstHeader";
-            this.lstHeader.Size = new System.Drawing.Size(230, 90);
+            this.lstHeader.Size = new System.Drawing.Size(260, 125);
             this.lstHeader.TabIndex = 2;
             this.lstHeader.SelectedIndexChanged += new System.EventHandler(this.lstHeader_SelectedIndexChanged);
             this.lstHeader.DoubleClick += new System.EventHandler(this.lstHeader_DoubleClick);
@@ -281,9 +281,9 @@ namespace Nlk_Cheffie_Print.Views.Controls
             this.pnlMiddleCanvas.Controls.Add(this.pnlReceiptRoll);
             this.pnlMiddleCanvas.Controls.Add(this.lblCanvasTitle);
             this.pnlMiddleCanvas.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pnlMiddleCanvas.Location = new System.Drawing.Point(260, 0);
+            this.pnlMiddleCanvas.Location = new System.Drawing.Point(290, 0);
             this.pnlMiddleCanvas.Name = "pnlMiddleCanvas";
-            this.pnlMiddleCanvas.Size = new System.Drawing.Size(320, 500);
+            this.pnlMiddleCanvas.Size = new System.Drawing.Size(290, 500);
             this.pnlMiddleCanvas.TabIndex = 2;
             this.pnlMiddleCanvas.Tag = "Background";
             this.pnlMiddleCanvas.Paint += new System.Windows.Forms.PaintEventHandler(this.pnlMiddleCanvas_Paint);

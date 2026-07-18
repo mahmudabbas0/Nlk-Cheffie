@@ -717,6 +717,34 @@ namespace Nlk_Cheffie_Print.Core
 
         public event Action? Scrolled;
 
+        protected override void OnMouseEnter(EventArgs e)
+        {
+            base.OnMouseEnter(e);
+            if (!this.Focused && this.CanFocus)
+            {
+                this.Focus();
+            }
+        }
+
+        protected override void OnMouseWheel(MouseEventArgs e)
+        {
+            base.OnMouseWheel(e);
+            if (this.Items.Count > 0)
+            {
+                int scrollLines = SystemInformation.MouseWheelScrollLines;
+                if (scrollLines <= 0) scrollLines = 3;
+                int linesToScroll = (e.Delta / 120) * scrollLines;
+                if (linesToScroll != 0)
+                {
+                    int newTop = this.TopIndex - linesToScroll;
+                    if (newTop < 0) newTop = 0;
+                    if (newTop >= this.Items.Count) newTop = this.Items.Count - 1;
+                    this.TopIndex = newTop;
+                }
+            }
+            Scrolled?.Invoke();
+        }
+
         protected override void WndProc(ref Message m)
         {
             base.WndProc(ref m);

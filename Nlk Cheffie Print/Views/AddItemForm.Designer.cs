@@ -67,14 +67,14 @@ namespace Nlk_Cheffie_Print.Views
             flpBasic.Controls.Add(btnItems);
             flpBasic.Location = new Point(20, 42);
             flpBasic.Name = "flpBasic";
-            flpBasic.Size = new Size(820, 52);
+            flpBasic.Size = new Size(900, 52);
             flpBasic.TabIndex = 1;
             // 
             // btnText
             // 
             btnText.Location = new Point(3, 3);
             btnText.Name = "btnText";
-            btnText.Size = new Size(130, 44);
+            btnText.Size = new Size(142, 44);
             btnText.TabIndex = 0;
             btnText.Tag = "Secondary";
             btnText.Text = "Metin";
@@ -83,9 +83,9 @@ namespace Nlk_Cheffie_Print.Views
             // 
             // btnSeparator
             // 
-            btnSeparator.Location = new Point(139, 3);
+            btnSeparator.Location = new Point(151, 3);
             btnSeparator.Name = "btnSeparator";
-            btnSeparator.Size = new Size(130, 44);
+            btnSeparator.Size = new Size(142, 44);
             btnSeparator.TabIndex = 1;
             btnSeparator.Tag = "Secondary";
             btnSeparator.Text = "Ayraç";
@@ -94,9 +94,9 @@ namespace Nlk_Cheffie_Print.Views
             // 
             // btnQrCode
             // 
-            btnQrCode.Location = new Point(275, 3);
+            btnQrCode.Location = new Point(299, 3);
             btnQrCode.Name = "btnQrCode";
-            btnQrCode.Size = new Size(130, 44);
+            btnQrCode.Size = new Size(142, 44);
             btnQrCode.TabIndex = 2;
             btnQrCode.Tag = "Secondary";
             btnQrCode.Text = "QR Kodu";
@@ -105,9 +105,9 @@ namespace Nlk_Cheffie_Print.Views
             // 
             // btnLogo
             // 
-            btnLogo.Location = new Point(411, 3);
+            btnLogo.Location = new Point(447, 3);
             btnLogo.Name = "btnLogo";
-            btnLogo.Size = new Size(130, 44);
+            btnLogo.Size = new Size(142, 44);
             btnLogo.TabIndex = 3;
             btnLogo.Tag = "Secondary";
             btnLogo.Text = "Logo";
@@ -116,9 +116,9 @@ namespace Nlk_Cheffie_Print.Views
             // 
             // btnBarcode
             // 
-            btnBarcode.Location = new Point(547, 3);
+            btnBarcode.Location = new Point(595, 3);
             btnBarcode.Name = "btnBarcode";
-            btnBarcode.Size = new Size(130, 44);
+            btnBarcode.Size = new Size(142, 44);
             btnBarcode.TabIndex = 4;
             btnBarcode.Tag = "Secondary";
             btnBarcode.Text = "Barkod";
@@ -127,9 +127,9 @@ namespace Nlk_Cheffie_Print.Views
             // 
             // btnItems
             // 
-            btnItems.Location = new Point(683, 3);
+            btnItems.Location = new Point(743, 3);
             btnItems.Name = "btnItems";
-            btnItems.Size = new Size(130, 44);
+            btnItems.Size = new Size(142, 44);
             btnItems.TabIndex = 5;
             btnItems.Tag = "Secondary";
             btnItems.Text = "Ürün Listesi";
@@ -155,23 +155,23 @@ namespace Nlk_Cheffie_Print.Views
             flpVars.Location = new Point(20, 130);
             flpVars.Name = "flpVars";
             flpVars.Padding = new Padding(0);
-            flpVars.Size = new Size(820, 260);
+            flpVars.Size = new Size(900, 210);
             flpVars.TabIndex = 3;
             // 
             // pnlButtons
             // 
             pnlButtons.Controls.Add(btnCancel);
             pnlButtons.Dock = DockStyle.Bottom;
-            pnlButtons.Location = new Point(0, 400);
+            pnlButtons.Location = new Point(0, 350);
             pnlButtons.Name = "pnlButtons";
-            pnlButtons.Size = new Size(860, 50);
+            pnlButtons.Size = new Size(940, 50);
             pnlButtons.TabIndex = 4;
             // 
             // btnCancel
             // 
             btnCancel.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             btnCancel.DialogResult = DialogResult.Cancel;
-            btnCancel.Location = new Point(745, 10);
+            btnCancel.Location = new Point(825, 10);
             btnCancel.Name = "btnCancel";
             btnCancel.Size = new Size(95, 30);
             btnCancel.TabIndex = 0;
@@ -183,7 +183,7 @@ namespace Nlk_Cheffie_Print.Views
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(860, 450);
+            ClientSize = new Size(940, 400);
             Controls.Add(pnlButtons);
             Controls.Add(flpVars);
             Controls.Add(lblTitleVars);
