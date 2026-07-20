@@ -89,6 +89,8 @@ namespace Nlk_Cheffie_Print.Views
             PrintQueueWorker.Start();
             PrintQueueWorker.JobProcessed += OnPrintJobProcessed;
 
+            _ = ProductExtrasCatalog.EnsureLoadedAsync();
+
             var app = ConfigManager.Current.App;
 
             // Start HTTP API / RabbitMQ Poller

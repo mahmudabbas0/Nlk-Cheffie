@@ -184,8 +184,11 @@ namespace Nlk_Cheffie_Print.Core.Printer
 
             if (itemsProp.ValueKind == JsonValueKind.Array)
             {
-                foreach (var item in itemsProp.EnumerateArray())
+                var jsonItems = itemsProp.EnumerateArray().ToList();
+                double orderSubtotal = GetOrderSubtotal(data);
+                for (int itemIndex = 0; itemIndex < jsonItems.Count; itemIndex++)
                 {
+                    var item = jsonItems[itemIndex];
                     int qty = item.TryGetProperty("quantity", out var q) ? (q.ValueKind == JsonValueKind.Number ? q.GetInt32() : 1) : 1;
                     
                     // Parse name (nested or flat support)
@@ -196,12 +199,12 @@ namespace Nlk_Cheffie_Print.Core.Printer
                         name = pObj.TryGetProperty("name", out var pn2) ? GetElementText(pn2) : "";
                     }
 
+                    var extras = el.ShowCustomizations
+                        ? ParseItemExtras(item, data, itemIndex, jsonItems.Count, orderSubtotal)
+                        : new List<string>();
+
                     // Parse price/total
-                    string total = item.TryGetProperty("line_total", out var lt) ? GetElementText(lt) : "";
-                    if (string.IsNullOrEmpty(total) && item.TryGetProperty("price", out var pr))
-                    {
-                        total = GetElementText(pr);
-                    }
+                    string total = ResolveDisplayItemPrice(item, qty, extras, orderSubtotal, jsonItems.Count);
 
                     string line = $"{qty}x {name}";
                     if (el.ShowPrice && !string.IsNullOrEmpty(total))
@@ -224,13 +227,9 @@ namespace Nlk_Cheffie_Print.Core.Printer
                     WriteTextEscPos(writer, line + "\n", "left", "A", "1x");
 
                     // Customizations
-                    if (el.ShowCustomizations)
+                    if (el.ShowCustomizations && extras.Count > 0)
                     {
-                        var extras = ParseItemExtras(item);
-                        if (extras.Count > 0)
-                        {
-                            WriteTextEscPos(writer, $" - Extra: {string.Join(", ", extras)}\n", "left", "A", "1x");
-                        }
+                        WriteTextEscPos(writer, $" - Extra: {string.Join(", ", extras)}\n", "left", "A", "1x");
                     }
 
                     // Notes
@@ -316,10 +315,13 @@ namespace Nlk_Cheffie_Print.Core.Printer
 
                 if (itemsProp.ValueKind == JsonValueKind.Array)
                 {
-                    foreach (var item in itemsProp.EnumerateArray())
+                    var jsonItems = itemsProp.EnumerateArray().ToList();
+                    double orderSubtotal = GetOrderSubtotal(data);
+                    for (int itemIndex = 0; itemIndex < jsonItems.Count; itemIndex++)
                     {
+                        var item = jsonItems[itemIndex];
                         yOffset += 18; // main item row
-                        if (el.ShowCustomizations && ParseItemExtras(item).Count > 0)
+                        if (el.ShowCustomizations && ParseItemExtras(item, data, itemIndex, jsonItems.Count, orderSubtotal).Count > 0)
                             yOffset += 16;
                         if (el.ShowNotes && item.TryGetProperty("notes", out var notes) && !string.IsNullOrEmpty(notes.GetString()))
                             yOffset += 16;
@@ -436,8 +438,11 @@ namespace Nlk_Cheffie_Print.Core.Printer
 
                 if (itemsProp.ValueKind == JsonValueKind.Array)
                 {
-                    foreach (var item in itemsProp.EnumerateArray())
+                    var jsonItems = itemsProp.EnumerateArray().ToList();
+                    double orderSubtotal = GetOrderSubtotal(data);
+                    for (int itemIndex = 0; itemIndex < jsonItems.Count; itemIndex++)
                     {
+                        var item = jsonItems[itemIndex];
                         int qty = item.TryGetProperty("quantity", out var q) ? (q.ValueKind == JsonValueKind.Number ? q.GetInt32() : 1) : 1;
                         
                         // Parse name (nested or flat support)
@@ -448,12 +453,12 @@ namespace Nlk_Cheffie_Print.Core.Printer
                             name = pObj.TryGetProperty("name", out var pn2) ? GetElementText(pn2) : "";
                         }
 
-                        // Parse price/total
-                        string total = item.TryGetProperty("line_total", out var lt) ? GetElementText(lt) : "";
-                        if (string.IsNullOrEmpty(total) && item.TryGetProperty("price", out var pr))
-                        {
-                            total = GetElementText(pr);
-                        }
+                        var extras = el.ShowCustomizations
+                            ? ParseItemExtras(item, data, itemIndex, jsonItems.Count, orderSubtotal)
+                            : new List<string>();
+
+                        // Parse price/total (base price when extras are listed separately)
+                        string total = ResolveDisplayItemPrice(item, qty, extras, orderSubtotal, jsonItems.Count);
 
                         string line = $"{qty}x {name}";
                         g.DrawString(line, fnNormal, brush, margin, yOffset);
@@ -471,14 +476,10 @@ namespace Nlk_Cheffie_Print.Core.Printer
                         yOffset += 18;
 
                         // Customizations
-                        if (el.ShowCustomizations)
+                        if (el.ShowCustomizations && extras.Count > 0)
                         {
-                            var extras = ParseItemExtras(item);
-                            if (extras.Count > 0)
-                            {
-                                g.DrawString($" - Extra: {string.Join(", ", extras)}", fnNormal, Brushes.Gray, margin + 15, yOffset);
-                                yOffset += 16;
-                            }
+                            g.DrawString($" - Extra: {string.Join(", ", extras)}", fnNormal, Brushes.Gray, margin + 15, yOffset);
+                            yOffset += 16;
                         }
 
                         // Notes
@@ -581,6 +582,19 @@ namespace Nlk_Cheffie_Print.Core.Printer
             if (string.IsNullOrEmpty(ctx["ara_toplam"])) ctx["ara_toplam"] = "0.00";
             
             ctx["ekstra_toplam"] = pay.ValueKind == JsonValueKind.Object ? GetStr(pay, "extras_total", "0.00") : GetStr(slip, "extras_total", "0.00");
+
+            double araToplamVal = 0;
+            double.TryParse(ctx["ara_toplam"], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out araToplamVal);
+            double ekstraToplamVal = 0;
+            double.TryParse(ctx["ekstra_toplam"], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out ekstraToplamVal);
+
+            if (string.IsNullOrEmpty(ctx["ekstra_toplam"]) || ctx["ekstra_toplam"] == "0" || ctx["ekstra_toplam"] == "0.00"
+                || (araToplamVal > 0 && ekstraToplamVal >= araToplamVal - 0.009))
+            {
+                double inferredExtras = OrderItemExtrasParser.ResolveExtrasTotal(slip);
+                if (inferredExtras > 0.009)
+                    ctx["ekstra_toplam"] = inferredExtras.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+            }
             if (string.IsNullOrEmpty(ctx["ekstra_toplam"])) ctx["ekstra_toplam"] = "0.00";
 
             ctx["kdv_toplam"] = pay.ValueKind == JsonValueKind.Object ? GetStr(pay, "tax", "0.00") : GetStr(slip, "tax", "0.00");
@@ -685,74 +699,70 @@ namespace Nlk_Cheffie_Print.Core.Printer
             writer.Write(new byte[] { 0x0A });
         }
 
-        private static List<string> ParseItemExtras(JsonElement item)
+        private static List<string> ParseItemExtras(JsonElement item, JsonElement slip, int itemIndex, int itemCount, double orderSubtotal)
         {
-            var extras = new List<string>();
-
-            // 1. Try Laravel "extras" array relation
-            if (item.TryGetProperty("extras", out var extrasEl) && extrasEl.ValueKind == JsonValueKind.Array)
+            var context = new OrderItemParseContext
             {
-                foreach (var ex in extrasEl.EnumerateArray())
-                {
-                    string exName = GetJsonStr(ex, "name");
-                    if (string.IsNullOrEmpty(exName)) exName = GetJsonStr(ex, "option_name");
+                OrderSubtotal = orderSubtotal,
+                ItemCount = itemCount,
+                ItemIndex = itemIndex
+            };
+            return OrderItemExtrasParser.ParseAddedExtras(item, context);
+        }
 
-                    string exPrice = GetJsonStr(ex, "price");
-                    if (double.TryParse(exPrice, out double exPriceVal) && exPriceVal > 0)
-                    {
-                        exName += $" (+{exPriceVal:0.00} TL)";
-                    }
-                    if (!string.IsNullOrEmpty(exName) && !extras.Contains(exName))
-                    {
-                        extras.Add(exName);
-                    }
-                }
+        private static double GetOrderSubtotal(JsonElement slip)
+        {
+            if (slip.TryGetProperty("payment_info", out var pay) && pay.ValueKind == JsonValueKind.Object)
+            {
+                string sub = GetStr(pay, "subtotal", "");
+                if (double.TryParse(sub, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double val) && val > 0)
+                    return val;
             }
 
-            // 2. Try standard customizations
-            if (item.TryGetProperty("customizations", out var custProp))
+            string direct = GetStr(slip, "subtotal", "");
+            if (double.TryParse(direct, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double directVal) && directVal > 0)
+                return directVal;
+
+            return 0;
+        }
+
+        private static string ResolveDisplayItemPrice(JsonElement item, int qty, List<string> extras, double orderSubtotal, int itemCount)
+        {
+            if (extras.Count > 0)
             {
-                if (custProp.ValueKind == JsonValueKind.Array)
+                if (item.TryGetProperty("base_price", out var basePriceEl))
                 {
-                    foreach (var c in custProp.EnumerateArray())
-                    {
-                        string cName = c.ValueKind == JsonValueKind.String ? c.GetString() ?? "" : GetJsonStr(c, "name");
-                        if (c.ValueKind == JsonValueKind.Object)
-                        {
-                            string cPrice = GetJsonStr(c, "price");
-                            if (double.TryParse(cPrice, out double cPriceVal) && cPriceVal > 0)
-                            {
-                                cName += $" (+{cPriceVal:0.00} TL)";
-                            }
-                        }
-                        if (!string.IsNullOrEmpty(cName) && !extras.Contains(cName))
-                        {
-                            extras.Add(cName);
-                        }
-                    }
+                    string baseText = GetElementText(basePriceEl);
+                    if (double.TryParse(baseText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double baseUnit) && baseUnit > 0)
+                        return (baseUnit * qty).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
                 }
-                else if (custProp.ValueKind == JsonValueKind.Object && custProp.TryGetProperty("added", out var addProp) && addProp.ValueKind == JsonValueKind.Array)
+
+                if (item.TryGetProperty("product", out var product) && product.ValueKind == JsonValueKind.Object &&
+                    product.TryGetProperty("price", out var basePriceFromProduct))
                 {
-                    foreach (var ex in addProp.EnumerateArray())
-                    {
-                        string cName = ex.ValueKind == JsonValueKind.String ? ex.GetString() ?? "" : GetJsonStr(ex, "name");
-                        if (ex.ValueKind == JsonValueKind.Object)
-                        {
-                            string cPrice = GetJsonStr(ex, "price");
-                            if (double.TryParse(cPrice, out double cPriceVal) && cPriceVal > 0)
-                            {
-                                cName += $" (+{cPriceVal:0.00} TL)";
-                            }
-                        }
-                        if (!string.IsNullOrEmpty(cName) && !extras.Contains(cName))
-                        {
-                            extras.Add(cName);
-                        }
-                    }
+                    string baseText = GetElementText(basePriceFromProduct);
+                    if (double.TryParse(baseText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double baseUnit) && baseUnit > 0)
+                        return (baseUnit * qty).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
                 }
+
+                double lineTotal = 0;
+                if (item.TryGetProperty("line_total", out var lt))
+                    double.TryParse(GetElementText(lt), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out lineTotal);
+                else if (item.TryGetProperty("total_price", out var tp))
+                    double.TryParse(GetElementText(tp), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out lineTotal);
+
+                double extrasAmount = OrderItemExtrasParser.SumPricesFromExtraLabels(extras) * qty;
+                if (lineTotal > extrasAmount + 0.009)
+                    return (lineTotal - extrasAmount).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
             }
 
-            return extras;
+            if (item.TryGetProperty("line_total", out var lineTotalEl)) return GetElementText(lineTotalEl);
+            if (item.TryGetProperty("total_price", out var totalPriceEl)) return GetElementText(totalPriceEl);
+            if (item.TryGetProperty("subtotal", out var subtotalEl)) return GetElementText(subtotalEl);
+            if (item.TryGetProperty("unit_price", out var unitPriceEl)) return GetElementText(unitPriceEl);
+            if (item.TryGetProperty("price", out var priceEl)) return GetElementText(priceEl);
+            if (itemCount == 1 && orderSubtotal > 0) return orderSubtotal.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+            return "";
         }
 
         private static string GetJsonStr(JsonElement el, string propName)

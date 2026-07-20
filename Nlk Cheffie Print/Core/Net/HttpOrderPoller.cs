@@ -98,13 +98,15 @@ namespace Nlk_Cheffie_Print.Core.Net
 
                                         if (!IsTodayOrder(order)) continue;
 
+                                        await ProductExtrasCatalog.EnsureLoadedAsync(token);
+
                                         string oid = GetOrderNoOrId(order);
                                         if (string.IsNullOrEmpty(oid)) continue;
                                         if (_seenOrderIds.Contains(oid)) continue;
 
                                         // Fetch details
-                                        var detail = await FetchOrderDetail(client, baseUrl, oid, token);
-                                        var finalOrder = MergeOrderDetails(order, detail);
+                                        var detail = await OrderApiClient.FetchOrderDetailAsync(client, oid, token);
+                                        var finalOrder = OrderApiClient.MergeOrderDetails(order, detail);
 
                                         string autoRole = app.AutoPrintRole;
                                         if (string.IsNullOrEmpty(autoRole)) autoRole = "kitchen";
@@ -127,97 +129,6 @@ namespace Nlk_Cheffie_Print.Core.Net
                     backoff = Math.Min(backoff * 2, 60);
                 }
             }
-        }
-
-        private async Task<JsonElement?> FetchOrderDetail(HttpClient client, string baseUrl, string orderId, CancellationToken token)
-        {
-            string[] candidates = {
-                $"{baseUrl}/printer/orders/{orderId}",
-                $"{baseUrl}/restaurant/orders/{orderId}",
-                $"{baseUrl}/restaurant/order/{orderId}"
-            };
-
-            foreach (var url in candidates)
-            {
-                try
-                {
-                    var response = await client.GetAsync(url, token);
-                    if (response.IsSuccessStatusCode)
-                    {
-                        string json = await response.Content.ReadAsStringAsync(token);
-                        var doc = JsonDocument.Parse(json);
-                        var root = doc.RootElement;
-                        
-                        if (root.TryGetProperty("data", out var dataProp))
-                        {
-                            if (dataProp.ValueKind == JsonValueKind.Object)
-                            {
-                                if (dataProp.TryGetProperty("order", out var orderProp)) return orderProp.Clone();
-                                return dataProp.Clone();
-                            }
-                        }
-                        if (root.TryGetProperty("order", out var directOrderProp)) return directOrderProp.Clone();
-                        return root.Clone();
-                    }
-                }
-                catch
-                {
-                    // Continue to next candidate URL
-                }
-            }
-            return null;
-        }
-
-        private JsonElement MergeOrderDetails(JsonElement baseOrder, JsonElement? detailOrder)
-        {
-            if (detailOrder == null) return baseOrder;
-
-            // In C# we can build a combined Dictionary and serialize it back to JsonElement
-            var dict = new Dictionary<string, object>();
-            
-            // Add base properties
-            foreach (var prop in baseOrder.EnumerateObject())
-            {
-                dict[prop.Name] = GetValue(prop.Value);
-            }
-
-            // Merge details
-            foreach (var prop in detailOrder.Value.EnumerateObject())
-            {
-                if (!dict.ContainsKey(prop.Name) || IsEmptyValue(dict[prop.Name]))
-                {
-                    dict[prop.Name] = GetValue(prop.Value);
-                }
-            }
-
-            string json = JsonSerializer.Serialize(dict);
-            using (var doc = JsonDocument.Parse(json))
-            {
-                return doc.RootElement.Clone();
-            }
-        }
-
-        private object GetValue(JsonElement el)
-        {
-            return el.ValueKind switch
-            {
-                JsonValueKind.True => true,
-                JsonValueKind.False => false,
-                JsonValueKind.Number => el.GetDouble(),
-                JsonValueKind.String => el.GetString() ?? "",
-                JsonValueKind.Array => JsonSerializer.Deserialize<List<object>>(el.GetRawText()) ?? new List<object>(),
-                JsonValueKind.Object => JsonSerializer.Deserialize<Dictionary<string, object>>(el.GetRawText()) ?? new Dictionary<string, object>(),
-                _ => null!
-            };
-        }
-
-        private bool IsEmptyValue(object val)
-        {
-            if (val == null) return true;
-            if (val is string s && string.IsNullOrEmpty(s)) return true;
-            if (val is List<object> l && l.Count == 0) return true;
-            if (val is Dictionary<string, object> d && d.Count == 0) return true;
-            return false;
         }
 
         private JsonElement GetOrdersArray(JsonElement root)

@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Nlk_Cheffie_Print.Core;
+using Nlk_Cheffie_Print.Core.Net;
 using Nlk_Cheffie_Print.Models;
 
 namespace Nlk_Cheffie_Print.Views.Controls
@@ -433,6 +434,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
         {
             var order = new Order
             {
+                Id              = GetJsonStr(root, "id"),
                 OrderNumber     = GetJsonStr(root, "order_number"),
                 Status          = TranslateStatus(GetJsonStr(root, "status")),
                 PaymentMethod   = TranslatePaymentMethod(GetJsonStr(root, "payment_method")),
@@ -443,6 +445,12 @@ namespace Nlk_Cheffie_Print.Views.Controls
                 CustomerEmail   = GetJsonStr(root, "customer_email"),
                 DeliveryAddress = GetJsonStr(root, "delivery_address"),
             };
+            if (string.IsNullOrWhiteSpace(order.Id) && root.TryGetProperty("id", out var idProp))
+            {
+                order.Id = idProp.ValueKind == JsonValueKind.Number
+                    ? idProp.GetInt32().ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    : idProp.GetString() ?? "";
+            }
             if (string.IsNullOrEmpty(order.CustomerEmail)) order.CustomerEmail = GetJsonStr(root, "email");
             if (string.IsNullOrEmpty(order.PaymentStatus)) order.PaymentStatus = GetJsonStr(root, "payment_state");
 
@@ -541,102 +549,44 @@ namespace Nlk_Cheffie_Print.Views.Controls
                     }
 
                     // Parse total/price
-                    string lineTotal = GetJsonStr(item, "subtotal");
+                    string unitPrice = GetJsonStr(item, "unit_price");
+                    if (string.IsNullOrEmpty(unitPrice)) unitPrice = GetJsonStr(item, "price");
+
+                    string lineTotal = GetJsonStr(item, "total_price");
+                    if (string.IsNullOrEmpty(lineTotal)) lineTotal = GetJsonStr(item, "subtotal");
                     if (string.IsNullOrEmpty(lineTotal)) lineTotal = GetJsonStr(item, "line_total");
-                    if (string.IsNullOrEmpty(lineTotal))
+                    if (string.IsNullOrEmpty(lineTotal) &&
+                        double.TryParse(unitPrice, System.Globalization.NumberStyles.Any,
+                            System.Globalization.CultureInfo.InvariantCulture, out double unitPriceVal))
                     {
-                        string priceStr = GetJsonStr(item, "price");
-                        if (double.TryParse(priceStr, out double priceVal))
-                        {
-                            lineTotal = (priceVal * qty).ToString("0.00");
-                        }
+                        lineTotal = (unitPriceVal * qty).ToString("0.00");
                     }
                     if (string.IsNullOrEmpty(lineTotal))
                     {
                         if (item.TryGetProperty("product", out var prodObjForPrice) && prodObjForPrice.ValueKind == JsonValueKind.Object)
                         {
                             string priceStr = GetJsonStr(prodObjForPrice, "price");
-                            if (double.TryParse(priceStr, out double priceVal))
+                            if (double.TryParse(priceStr, System.Globalization.NumberStyles.Any,
+                                    System.Globalization.CultureInfo.InvariantCulture, out double priceVal))
                             {
                                 lineTotal = (priceVal * qty).ToString("0.00");
                             }
                         }
                     }
 
-                    // Parse customizations (extras)
-                    var addedCust = new List<string>();
-
-                    // 1. Try Laravel "extras" relation array
-                    if (item.TryGetProperty("extras", out var extrasEl) && extrasEl.ValueKind == JsonValueKind.Array)
-                    {
-                        foreach (var ex in extrasEl.EnumerateArray())
-                        {
-                            string exName = GetJsonStr(ex, "name");
-                            if (string.IsNullOrEmpty(exName)) exName = GetJsonStr(ex, "option_name");
-
-                            string exPrice = GetJsonStr(ex, "price");
-                            if (double.TryParse(exPrice, out double exPriceVal) && exPriceVal > 0)
-                            {
-                                exName += $" (+{exPriceVal:0.00} TL)";
-                            }
-                            if (!string.IsNullOrEmpty(exName) && !addedCust.Contains(exName))
-                            {
-                                addedCust.Add(exName);
-                            }
-                        }
-                    }
-
-                    // 2. Try standard customizations
-                    if (item.TryGetProperty("customizations", out var custEl))
-                    {
-                        if (custEl.ValueKind == JsonValueKind.Array)
-                        {
-                            foreach (var c in custEl.EnumerateArray())
-                            {
-                                string cName = c.ValueKind == JsonValueKind.String ? c.GetString() ?? "" : GetJsonStr(c, "name");
-                                if (c.ValueKind == JsonValueKind.Object)
-                                {
-                                    string cPrice = GetJsonStr(c, "price");
-                                    if (double.TryParse(cPrice, out double cPriceVal) && cPriceVal > 0)
-                                    {
-                                        cName += $" (+{cPriceVal:0.00} TL)";
-                                    }
-                                }
-                                if (!string.IsNullOrEmpty(cName) && !addedCust.Contains(cName))
-                                {
-                                    addedCust.Add(cName);
-                                }
-                            }
-                        }
-                        else if (custEl.ValueKind == JsonValueKind.Object && custEl.TryGetProperty("added", out var addedEl) && addedEl.ValueKind == JsonValueKind.Array)
-                        {
-                            foreach (var c in addedEl.EnumerateArray())
-                            {
-                                string cName = c.ValueKind == JsonValueKind.String ? c.GetString() ?? "" : GetJsonStr(c, "name");
-                                if (c.ValueKind == JsonValueKind.Object)
-                                {
-                                    string cPrice = GetJsonStr(c, "price");
-                                    if (double.TryParse(cPrice, out double cPriceVal) && cPriceVal > 0)
-                                    {
-                                        cName += $" (+{cPriceVal:0.00} TL)";
-                                    }
-                                }
-                                if (!string.IsNullOrEmpty(cName) && !addedCust.Contains(cName))
-                                {
-                                    addedCust.Add(cName);
-                                }
-                            }
-                        }
-                    }
+                    var addedCust = OrderItemExtrasParser.ParseAddedExtras(item);
+                    var removedCust = OrderItemExtrasParser.ParseRemovedExtras(item);
 
                     order.Items.Add(new OrderItem
                     {
+                        ProductId            = OrderItemExtrasParser.GetProductId(item),
                         Name                 = name,
                         Quantity             = qty,
-                        UnitPrice            = GetJsonStr(item, "price"),
+                        UnitPrice            = unitPrice,
                         LineTotal            = lineTotal,
                         Notes                = GetJsonStr(item, "notes"),
-                        AddedCustomizations  = addedCust
+                        AddedCustomizations  = addedCust,
+                        RemovedCustomizations = removedCust
                     });
                 }
             }
@@ -663,6 +613,10 @@ namespace Nlk_Cheffie_Print.Views.Controls
             order.Subtotal = string.IsNullOrEmpty(sub) ? "0.00" : sub;
             order.Tax = string.IsNullOrEmpty(tx) ? "0.00" : tx;
             order.ExtrasTotal = string.IsNullOrEmpty(ext) ? "0.00" : ext;
+
+            OrderItemExtrasParser.EnrichOrderFromJson(order, root);
+            if (ProductExtrasCatalog.IsLoaded)
+                OrderItemExtrasParser.RefreshOrderExtraNames(order);
 
             return order;
         }
@@ -761,7 +715,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
         {
             if (e.RowIndex >= 0 && dgvOrders.Columns[e.ColumnIndex].Name == "colDetail"
                 && dgvOrders.Rows[e.RowIndex].DataBoundItem is Order order)
-                ShowOrderDetail(order);
+                _ = ShowOrderDetailAsync(order);
         }
 
         private void dgvOrders_CellMouseEnter(object? sender, DataGridViewCellEventArgs e)
@@ -789,9 +743,35 @@ namespace Nlk_Cheffie_Print.Views.Controls
             }
         }
 
-        private static void ShowOrderDetail(Order order)
+        private async Task ShowOrderDetailAsync(Order order)
         {
-            using var preview = new ReceiptPreviewForm(order);
+            Order detailOrder = order;
+            try
+            {
+                await ProductExtrasCatalog.EnsureLoadedAsync();
+
+                string orderKey = !string.IsNullOrWhiteSpace(order.Id) ? order.Id : order.OrderNumber;
+                if (!string.IsNullOrWhiteSpace(orderKey))
+                {
+                    using var client = OrderApiClient.CreateAuthenticatedClient();
+                    var detailJson = await OrderApiClient.FetchOrderDetailAsync(client, orderKey);
+                    if (detailJson.HasValue)
+                    {
+                        detailOrder = MapJsonToOrder(detailJson.Value);
+                        detailOrder.Id = string.IsNullOrWhiteSpace(detailOrder.Id) ? order.Id : detailOrder.Id;
+                        detailOrder.Section = string.IsNullOrWhiteSpace(detailOrder.Section) ? order.Section : detailOrder.Section;
+                        detailOrder.WaiterName = string.IsNullOrWhiteSpace(detailOrder.WaiterName) ? order.WaiterName : detailOrder.WaiterName;
+                    }
+                }
+
+                OrderItemExtrasParser.RefreshOrderExtraNames(detailOrder);
+            }
+            catch
+            {
+                // Fall back to list data if detail fetch fails.
+            }
+
+            using var preview = new ReceiptPreviewForm(detailOrder);
             preview.ShowDialog();
         }
 

@@ -1,13 +1,13 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "C:\\Users\\cagat\\OneDrive\\Belgeler\\GitHub\\Nlk-Cheffie\\",
+  "WorkspaceRootPath": "C:\\Users\\MAHMUD ABBAS\\Desktop\\menuexe\\Nlk-Cheffie\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{F82B417D-EED8-53C1-AF47-D45855E16DB5}|Nlk Cheffie Print\\Nlk Cheffie Print.csproj|c:\\users\\cagat\\onedrive\\belgeler\\github\\nlk-cheffie\\nlk cheffie print\\views\\additemform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "AbsoluteMoniker": "D:0:0:{F82B417D-EED8-53C1-AF47-D45855E16DB5}|Nlk Cheffie Print\\Nlk Cheffie Print.csproj|c:\\users\\mahmud abbas\\desktop\\menuexe\\nlk-cheffie\\nlk cheffie print\\views\\additemform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
       "RelativeMoniker": "D:0:0:{F82B417D-EED8-53C1-AF47-D45855E16DB5}|Nlk Cheffie Print\\Nlk Cheffie Print.csproj|solutionrelative:nlk cheffie print\\views\\additemform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{F82B417D-EED8-53C1-AF47-D45855E16DB5}|Nlk Cheffie Print\\Nlk Cheffie Print.csproj|c:\\users\\cagat\\onedrive\\belgeler\\github\\nlk-cheffie\\nlk cheffie print\\views\\controls\\orderscontrol.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{F82B417D-EED8-53C1-AF47-D45855E16DB5}|Nlk Cheffie Print\\Nlk Cheffie Print.csproj|c:\\users\\mahmud abbas\\desktop\\menuexe\\nlk-cheffie\\nlk cheffie print\\views\\controls\\orderscontrol.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{F82B417D-EED8-53C1-AF47-D45855E16DB5}|Nlk Cheffie Print\\Nlk Cheffie Print.csproj|solutionrelative:nlk cheffie print\\views\\controls\\orderscontrol.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
@@ -23,22 +23,22 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "AddItemForm.cs [Tasar\u0131m]",
-              "DocumentMoniker": "C:\\Users\\cagat\\OneDrive\\Belgeler\\GitHub\\Nlk-Cheffie\\Nlk Cheffie Print\\Views\\AddItemForm.cs",
+              "Title": "AddItemForm.cs [Design]",
+              "DocumentMoniker": "C:\\Users\\MAHMUD ABBAS\\Desktop\\menuexe\\Nlk-Cheffie\\Nlk Cheffie Print\\Views\\AddItemForm.cs",
               "RelativeDocumentMoniker": "Nlk Cheffie Print\\Views\\AddItemForm.cs",
-              "ToolTip": "C:\\Users\\cagat\\OneDrive\\Belgeler\\GitHub\\Nlk-Cheffie\\Nlk Cheffie Print\\Views\\AddItemForm.cs [Tasar\u0131m]",
-              "RelativeToolTip": "Nlk Cheffie Print\\Views\\AddItemForm.cs [Tasar\u0131m]",
+              "ToolTip": "C:\\Users\\MAHMUD ABBAS\\Desktop\\menuexe\\Nlk-Cheffie\\Nlk Cheffie Print\\Views\\AddItemForm.cs [Design]",
+              "RelativeToolTip": "Nlk Cheffie Print\\Views\\AddItemForm.cs [Design]",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-07-10T10:49:29.901Z",
-              "EditorCaption": " [Tasar\u0131m]"
+              "EditorCaption": " [Design]"
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
               "Title": "OrdersControl.cs",
-              "DocumentMoniker": "C:\\Users\\cagat\\OneDrive\\Belgeler\\GitHub\\Nlk-Cheffie\\Nlk Cheffie Print\\Views\\Controls\\OrdersControl.cs",
+              "DocumentMoniker": "C:\\Users\\MAHMUD ABBAS\\Desktop\\menuexe\\Nlk-Cheffie\\Nlk Cheffie Print\\Views\\Controls\\OrdersControl.cs",
               "RelativeDocumentMoniker": "Nlk Cheffie Print\\Views\\Controls\\OrdersControl.cs",
-              "ToolTip": "C:\\Users\\cagat\\OneDrive\\Belgeler\\GitHub\\Nlk-Cheffie\\Nlk Cheffie Print\\Views\\Controls\\OrdersControl.cs",
+              "ToolTip": "C:\\Users\\MAHMUD ABBAS\\Desktop\\menuexe\\Nlk-Cheffie\\Nlk Cheffie Print\\Views\\Controls\\OrdersControl.cs",
               "RelativeToolTip": "Nlk Cheffie Print\\Views\\Controls\\OrdersControl.cs",
               "ViewState": "AgIAAGUAAAAAAAAAAAAgwH8AAAAMAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",

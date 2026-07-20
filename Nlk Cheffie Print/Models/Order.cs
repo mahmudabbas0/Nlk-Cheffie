@@ -5,6 +5,7 @@ namespace Nlk_Cheffie_Print.Models
 {
     public class OrderItem
     {
+        public int ProductId { get; set; }
         public int Quantity { get; set; } = 1;
         public string Name { get; set; } = "";
         public string UnitPrice { get; set; } = "0.00";

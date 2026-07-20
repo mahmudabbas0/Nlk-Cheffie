@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -267,17 +268,60 @@ namespace Nlk_Cheffie_Print.Core.Workers
 
                 // Convert items
                 var itemsLog = new List<object>();
-                if (data.TryGetProperty("items", out var itemsProp) && itemsProp.ValueKind == JsonValueKind.Array)
+                var jsonItems = new List<JsonElement>();
+                JsonElement itemsProp = default;
+                if (data.TryGetProperty("items", out var wsItems) && wsItems.ValueKind == JsonValueKind.Array)
+                    itemsProp = wsItems;
+                else if (data.TryGetProperty("order_items", out var apiItems) && apiItems.ValueKind == JsonValueKind.Array)
+                    itemsProp = apiItems;
+
+                if (itemsProp.ValueKind == JsonValueKind.Array)
                 {
-                    foreach (var item in itemsProp.EnumerateArray())
+                    jsonItems = itemsProp.EnumerateArray().ToList();
+                    double orderSubtotal = 0;
+                    if (data.TryGetProperty("payment_info", out var payInfoSub) && payInfoSub.ValueKind == JsonValueKind.Object)
+                        double.TryParse(GetStr(payInfoSub, "subtotal", "0"), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out orderSubtotal);
+                    if (orderSubtotal <= 0)
+                        double.TryParse(GetStr(data, "subtotal", "0"), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out orderSubtotal);
+
+                    for (int itemIndex = 0; itemIndex < jsonItems.Count; itemIndex++)
                     {
+                        var item = jsonItems[itemIndex];
                         var it = new Dictionary<string, object>();
                         it["quantity"] = item.TryGetProperty("quantity", out var q) ? (q.ValueKind == JsonValueKind.Number ? q.GetInt32() : 1) : 1;
                         it["name"] = item.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
                         it["notes"] = item.TryGetProperty("notes", out var no) ? no.GetString() ?? "" : "";
+
+                        var context = new OrderItemParseContext
+                        {
+                            OrderSubtotal = orderSubtotal,
+                            ItemCount = jsonItems.Count,
+                            ItemIndex = itemIndex
+                        };
+                        var added = OrderItemExtrasParser.ParseAddedExtras(item, context);
+                        var removed = OrderItemExtrasParser.ParseRemovedExtras(item);
+                        if (added.Count > 0 || removed.Count > 0)
+                        {
+                            it["customizations"] = new
+                            {
+                                added,
+                                removed
+                            };
+                        }
+
+                        if (item.TryGetProperty("extras_data", out _))
+                            it["extras_data"] = JsonSerializer.Deserialize<object>(item.GetProperty("extras_data").GetRawText()) ?? Array.Empty<object>();
+                        if (item.TryGetProperty("variant_data", out _))
+                            it["variant_data"] = JsonSerializer.Deserialize<object>(item.GetProperty("variant_data").GetRawText()) ?? new { };
+
                         itemsLog.Add(it);
                     }
                 }
+
+                double extrasTotal = OrderItemExtrasParser.ResolveExtrasTotal(data, jsonItems);
+                if (extrasTotal > 0.009)
+                    entry["extras_total"] = extrasTotal.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+
                 entry["items"] = itemsLog;
 
                 string line = JsonSerializer.Serialize(entry) + "\n";

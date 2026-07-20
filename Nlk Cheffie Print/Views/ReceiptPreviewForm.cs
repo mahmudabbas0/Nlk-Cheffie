@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using Nlk_Cheffie_Print.Core;
+using Nlk_Cheffie_Print.Core.Net;
 using Nlk_Cheffie_Print.Core.Printer;
 using Nlk_Cheffie_Print.Core.Workers;
 using Nlk_Cheffie_Print.Models;
@@ -14,7 +16,7 @@ namespace Nlk_Cheffie_Print.Views
     {
         private readonly Order _order;
         private readonly string _role;
-        private readonly JsonElement _data;
+        private JsonElement _data;
         private readonly SlipTemplate _template;
 
         // Custom Title Bar Dragging fields
@@ -241,8 +243,22 @@ namespace Nlk_Cheffie_Print.Views
             // Trigger initial layout
             Canvas_Resize(this, EventArgs.Empty);
 
-            // Hook Shown event to force final scroll recalculations when form is visible
-            this.Shown += (s, e) => Canvas_Resize(this, EventArgs.Empty);
+            Shown += async (_, _) => await RefreshReceiptAsync();
+        }
+
+        private async Task RefreshReceiptAsync()
+        {
+            try
+            {
+                await ProductExtrasCatalog.EnsureLoadedAsync();
+                OrderItemExtrasParser.RefreshOrderExtraNames(_order);
+                _data = CreateReceiptData(_order);
+                LoadPreviewImage();
+            }
+            catch
+            {
+                // Keep the initial receipt if refresh fails.
+            }
         }
 
         private void Canvas_Resize(object? sender, EventArgs e)
@@ -393,6 +409,18 @@ namespace Nlk_Cheffie_Print.Views
             return pnl;
         }
 
+        private static string GetItemDisplayPrice(OrderItem item)
+        {
+            if (item.AddedCustomizations.Count > 0 &&
+                !string.IsNullOrWhiteSpace(item.UnitPrice) &&
+                item.UnitPrice != "0.00")
+            {
+                return $"{item.UnitPrice} TL";
+            }
+
+            return string.IsNullOrEmpty(item.LineTotal) ? "TL" : $"{item.LineTotal} TL";
+        }
+
         private void BuildDetailsView()
         {
             pnlDetails = new Panel
@@ -520,7 +548,7 @@ namespace Nlk_Cheffie_Print.Views
 
                 var lblPrice = new Label
                 {
-                    Text = string.IsNullOrEmpty(item.LineTotal) ? "TL" : $"{item.LineTotal} TL",
+                    Text = GetItemDisplayPrice(item),
                     Font = ThemeManager.FontBodyBold,
                     ForeColor = ThemeManager.ColorText,
                     Location = new Point(290, 12),
@@ -929,8 +957,10 @@ namespace Nlk_Cheffie_Print.Views
                 },
                 items = order.Items.ConvertAll(item => new 
                 { 
+                    product_id = item.ProductId,
                     quantity = item.Quantity, 
-                    name = item.Name, 
+                    name = item.Name,
+                    base_price = item.UnitPrice,
                     line_total = item.LineTotal, 
                     notes = item.Notes ?? "",
                     customizations = new
