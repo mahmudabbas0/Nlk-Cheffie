@@ -98,19 +98,60 @@ namespace Nlk_Cheffie_Print.Core
         protected override void OnPaint(PaintEventArgs e)
         {
             var g = e.Graphics;
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             g.Clear(BackColor);
 
             var thumbRect = GetThumbRect();
             if (thumbRect.IsEmpty) return;
 
-            Color thumbColor = _isDragging ? Color.FromArgb(255, 200, 50) 
-                             : _isHovered ? ThemeManager.ColorAccent 
-                             : Color.FromArgb(160, ThemeManager.ColorAccent);
+            // Inset the thumb rectangle slightly to make it float in the track
+            var insetThumb = new Rectangle(
+                thumbRect.X + 2,
+                thumbRect.Y + 2,
+                thumbRect.Width - 4,
+                thumbRect.Height - 4
+            );
 
+            if (insetThumb.Width <= 0 || insetThumb.Height <= 0) return;
+
+            Color thumbColor = _isDragging ? ThemeManager.ColorAccentPressed 
+                             : _isHovered ? ThemeManager.ColorAccentHover 
+                             : ThemeManager.ColorAccent;
+
+            int radius = Math.Min(insetThumb.Width / 2, 4);
+            using (var path = GetRoundedRect(insetThumb, radius))
             using (var brush = new SolidBrush(thumbColor))
             {
-                g.FillRectangle(brush, thumbRect);
+                g.FillPath(brush, path);
             }
+        }
+
+        private static System.Drawing.Drawing2D.GraphicsPath GetRoundedRect(Rectangle bounds, int radius)
+        {
+            int diameter = radius * 2;
+            Size size = new Size(diameter, diameter);
+            Rectangle arc = new Rectangle(bounds.Location, size);
+            var path = new System.Drawing.Drawing2D.GraphicsPath();
+
+            if (radius <= 0)
+            {
+                path.AddRectangle(bounds);
+                return path;
+            }
+
+            path.AddArc(arc, 180, 90);
+
+            arc.X = bounds.Right - diameter;
+            path.AddArc(arc, 270, 90);
+
+            arc.Y = bounds.Bottom - diameter;
+            path.AddArc(arc, 0, 90);
+
+            arc.X = bounds.Left;
+            path.AddArc(arc, 90, 90);
+
+            path.CloseFigure();
+            return path;
         }
 
         protected override void OnMouseEnter(EventArgs e)

@@ -1,0 +1,11 @@
+Resize: pnlCanvas.ClientSize={Width=520, Height=648}, scrollBar.Visible=False, pnlDetails.Visible=False
+Resize: pnlCanvas.ClientSize={Width=502, Height=601}, scrollBar.Visible=False, pnlDetails.Visible=False
+Resize: pnlCanvas.ClientSize={Width=520, Height=648}, scrollBar.Visible=False, pnlDetails.Visible=False
+Resize: pnlCanvas.ClientSize={Width=520, Height=648}, scrollBar.Visible=False, pnlDetails.Visible=True
+Resize: pnlCanvas.ClientSize={Width=520, Height=648}, scrollBar.Visible=True, pnlDetails.Visible=True
+Resize: pnlCanvas.ClientSize={Width=520, Height=648}, scrollBar.Visible=False, pnlDetails.Visible=False
+Resize: pnlCanvas.ClientSize={Width=520, Height=648}, scrollBar.Visible=False, pnlDetails.Visible=False
+Resize: pnlCanvas.ClientSize={Width=502, Height=601}, scrollBar.Visible=False, pnlDetails.Visible=False
+Resize: pnlCanvas.ClientSize={Width=520, Height=648}, scrollBar.Visible=False, pnlDetails.Visible=False
+Resize: pnlCanvas.ClientSize={Width=520, Height=648}, scrollBar.Visible=False, pnlDetails.Visible=True
+Resize: pnlCanvas.ClientSize={Width=520, Height=648}, scrollBar.Visible=True, pnlDetails.Visible=True

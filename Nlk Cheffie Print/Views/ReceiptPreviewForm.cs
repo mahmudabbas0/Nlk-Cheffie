@@ -243,7 +243,11 @@ namespace Nlk_Cheffie_Print.Views
             // Trigger initial layout
             Canvas_Resize(this, EventArgs.Empty);
 
-            Shown += async (_, _) => await RefreshReceiptAsync();
+            Shown += async (_, _) =>
+            {
+                Canvas_Resize(this, EventArgs.Empty);
+                await RefreshReceiptAsync();
+            };
         }
 
         private async Task RefreshReceiptAsync()
@@ -263,11 +267,18 @@ namespace Nlk_Cheffie_Print.Views
 
         private void Canvas_Resize(object? sender, EventArgs e)
         {
-            int targetWidth = pnlCanvas.ClientSize.Width - 40 - (scrollBar.Visible ? scrollBar.Width : 0);
+            try
+            {
+                System.IO.File.AppendAllText("debug_layout.log", 
+                    $"Resize: pnlCanvas.ClientSize={pnlCanvas.ClientSize}, scrollBar.Visible={scrollBar.Visible}, pnlDetails.Visible={pnlDetails.Visible}\n");
+            }
+            catch {}
+
+            int availableWidth = pnlCanvas.ClientSize.Width - 40 - (scrollBar.Visible ? scrollBar.Width : 0);
+            int targetWidth = availableWidth - flowDetails.Padding.Left - flowDetails.Padding.Right;
             if (targetWidth < 300) targetWidth = 300;
 
             flowDetails.SuspendLayout();
-            flowDetails.Width = pnlDetails.ClientSize.Width - (scrollBar.Visible ? scrollBar.Width : 0);
             foreach (Control ctrl in flowDetails.Controls)
             {
                 ctrl.Width = targetWidth;
@@ -306,7 +317,8 @@ namespace Nlk_Cheffie_Print.Views
             }
             else if (pnlDetails.Visible)
             {
-                flowDetails.Left = (pnlDetails.ClientSize.Width - flowDetails.Width) / 2;
+                flowDetails.Width = availableWidth;
+                flowDetails.Left = 0;
                 UpdateDetailsScrollRange();
             }
         }
@@ -756,6 +768,7 @@ namespace Nlk_Cheffie_Print.Views
                     {
                         scrollBar.BringToFront();
                     }
+                    pnlCanvas.PerformLayout();
                     LayoutPreviewImage();
                     totalHeight = picPreview.Height;
                     maxScroll = totalHeight - visibleHeight;
@@ -819,6 +832,7 @@ namespace Nlk_Cheffie_Print.Views
                 {
                     scrollBar.BringToFront();
                 }
+                pnlCanvas.PerformLayout();
                 Canvas_Resize(this, EventArgs.Empty);
                 return;
             }
@@ -828,6 +842,8 @@ namespace Nlk_Cheffie_Print.Views
                 scrollBar.Minimum = 0;
                 scrollBar.Maximum = totalHeight;
                 scrollBar.LargeChange = visibleHeight;
+                scrollBar.Value = Math.Min(scrollBar.Value, Math.Max(0, scrollBar.Maximum - scrollBar.LargeChange + 1));
+                flowDetails.Top = -scrollBar.Value;
             }
             else
             {
