@@ -79,7 +79,7 @@ namespace Nlk_Cheffie_Print.Views
                 Button btn = new Button
                 {
                     Text = kvp.Value,
-                    Width = 122,
+                    Width = 138,
                     Height = 38,
                     Margin = new Padding(3),
                     FlatStyle = FlatStyle.Flat,

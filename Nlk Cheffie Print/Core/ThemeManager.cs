@@ -234,8 +234,8 @@ namespace Nlk_Cheffie_Print.Core
                 dataGridView.DefaultCellStyle.BackColor = ColorBackground;
                 dataGridView.DefaultCellStyle.ForeColor = ColorText;
                 dataGridView.DefaultCellStyle.Font = FontBody;
-                dataGridView.DefaultCellStyle.SelectionBackColor = Color.FromArgb(40, ColorAccent);
-                dataGridView.DefaultCellStyle.SelectionForeColor = ColorText;
+                dataGridView.DefaultCellStyle.SelectionBackColor = Color.FromArgb(44, 44, 46);
+                dataGridView.DefaultCellStyle.SelectionForeColor = Color.White;
                 
                 // Alternate row
                 dataGridView.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(20, 20, 22);
@@ -246,6 +246,9 @@ namespace Nlk_Cheffie_Print.Core
                 dataGridView.MultiSelect = true;
                 dataGridView.AllowUserToAddRows = false;
                 dataGridView.AllowUserToDeleteRows = false;
+                dataGridView.AllowUserToResizeColumns = false;
+                dataGridView.AllowUserToResizeRows = false;
+                dataGridView.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
                 dataGridView.ReadOnly = true;
             }
 

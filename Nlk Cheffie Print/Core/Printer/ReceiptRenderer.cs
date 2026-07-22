@@ -55,7 +55,8 @@ namespace Nlk_Cheffie_Print.Core.Printer
 
         private static void RenderSectionEscPos(List<TemplateElement> section, Dictionary<string, string> ctx, BinaryWriter writer, JsonElement data)
         {
-            foreach (var el in section)
+            var optimized = OptimizeSection(section, ctx);
+            foreach (var el in optimized)
             {
                 if (el.Type == "separator")
                 {
@@ -292,7 +293,8 @@ namespace Nlk_Cheffie_Print.Core.Printer
 
         private static int MeasureSection(List<TemplateElement> section, Dictionary<string, string> ctx, Graphics g, int yOffset, int usableWidth, Font fnNormal, Font fnBold, Font fnHeader, JsonElement data)
         {
-            foreach (var el in section)
+            var optimized = OptimizeSection(section, ctx);
+            foreach (var el in optimized)
             {
                 yOffset = MeasureElement(el, ctx, g, yOffset, usableWidth, fnNormal, fnBold, fnHeader, data);
             }
@@ -341,7 +343,8 @@ namespace Nlk_Cheffie_Print.Core.Printer
 
         private static int DrawSection(List<TemplateElement> section, Dictionary<string, string> ctx, Graphics g, int yOffset, int usableWidth, int margin, Font fnNormal, Font fnBold, Font fnHeader, Brush brush, JsonElement data)
         {
-            foreach (var el in section)
+            var optimized = OptimizeSection(section, ctx);
+            foreach (var el in optimized)
             {
                 yOffset = DrawElement(el, ctx, g, yOffset, usableWidth, margin, fnNormal, fnBold, fnHeader, brush, data);
             }
@@ -512,6 +515,99 @@ namespace Nlk_Cheffie_Print.Core.Printer
             return yOffset + (int)size.Height + 4;
         }
 
+        private static bool ShouldSkipElement(TemplateElement el, Dictionary<string, string> ctx)
+        {
+            if (el.Type != "text" || string.IsNullOrEmpty(el.Content)) return false;
+
+            // Check if it's the customer info header
+            if (el.Content.Contains("L_customer_info") || el.Content.Contains("customer_info"))
+            {
+                bool hasName = ctx.TryGetValue("musteri_adi", out string name) && !string.IsNullOrWhiteSpace(name);
+                bool hasPhone = ctx.TryGetValue("musteri_telefon", out string phone) && !string.IsNullOrWhiteSpace(phone);
+                if (!hasName && !hasPhone) return true;
+            }
+
+            // If it has no placeholders, never skip it
+            if (!el.Content.Contains("{")) return false;
+
+            // Perform dry substitute of only the data variables
+            string substituted = el.Content;
+            int pos = 0;
+            while (true)
+            {
+                int start = substituted.IndexOf('{', pos);
+                if (start == -1) break;
+                int end = substituted.IndexOf('}', start);
+                if (end == -1) break;
+
+                string rawKey = substituted.Substring(start, end - start + 1);
+                string key = substituted.Substring(start + 1, end - start - 1);
+
+                if (!key.StartsWith("L_"))
+                {
+                    string val = "";
+                    if (ctx.TryGetValue(key, out string v))
+                    {
+                        val = v ?? "";
+                    }
+                    substituted = substituted.Replace(rawKey, val);
+                }
+                else
+                {
+                    string val = "";
+                    if (ctx.TryGetValue(key, out string v))
+                    {
+                        val = v ?? "";
+                    }
+                    substituted = substituted.Replace(rawKey, val);
+                    pos = start + val.Length;
+                }
+            }
+
+            // Clean up the substituted string (remove spaces, colons, dashes, etc.)
+            string cleaned = substituted;
+            foreach (char c in new char[] { ' ', ':', '-', '|', '/', '*', '\t', '\r', '\n' })
+            {
+                cleaned = cleaned.Replace(c.ToString(), "");
+            }
+
+            // If nothing is left in the string, skip it!
+            return string.IsNullOrEmpty(cleaned);
+        }
+
+        private static List<TemplateElement> OptimizeSection(List<TemplateElement> section, Dictionary<string, string> ctx)
+        {
+            var result = new List<TemplateElement>();
+            foreach (var el in section)
+            {
+                if (el.Type == "text" && ShouldSkipElement(el, ctx))
+                {
+                    continue;
+                }
+                result.Add(el);
+            }
+
+            // Remove consecutive or trailing separators
+            var finalResult = new List<TemplateElement>();
+            for (int i = 0; i < result.Count; i++)
+            {
+                var el = result[i];
+                if (el.Type == "separator")
+                {
+                    if (finalResult.Count == 0) continue;
+                    if (finalResult[finalResult.Count - 1].Type == "separator") continue;
+                }
+                finalResult.Add(el);
+            }
+
+            if (finalResult.Count > 0 && finalResult[finalResult.Count - 1].Type == "separator")
+            {
+                finalResult.RemoveAt(finalResult.Count - 1);
+            }
+
+            return finalResult;
+        }
+
         private static Dictionary<string, string> BuildContext(JsonElement root)
         {
             var ctx = new Dictionary<string, string>();
@@ -638,6 +734,12 @@ namespace Nlk_Cheffie_Print.Core.Printer
             ctx["L_total"] = LocalizationService.T("designer.vars.grand_total", "Genel Toplam");
             ctx["L_afiyet_olsun"] = LocalizationService.T("receipt.enjoy", "Afiyet Olsun!");
 
+            ctx["L_customer_info"] = LocalizationService.T("receipt.customer_info", 
+                LocalizationService.CurrentLanguage.ToLower() == "tr" ? "Müşteri Bilgileri" : "Customer Details");
+            ctx["L_customer_name"] = LocalizationService.T("designer.vars.customer_name", "Müşteri Adı");
+            ctx["L_customer_phone"] = LocalizationService.T("designer.vars.customer_phone", "Müşteri Telefonu");
+            ctx["L_delivery_address"] = LocalizationService.T("designer.vars.delivery_address", "Teslimat Adresi");
+ 
             return ctx;
         }
 

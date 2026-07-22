@@ -9,6 +9,7 @@ namespace Nlk_Cheffie_Print.Views
     public partial class SettingsForm : Form
     {
         public bool ConnectionResetTriggered { get; private set; } = false;
+        private string _originalLanguage = "tr";
 
         public SettingsForm()
         {
@@ -24,6 +25,9 @@ namespace Nlk_Cheffie_Print.Views
 
             PopulateDropdowns();
             LoadConfigData();
+
+            _originalLanguage = LocalizationService.CurrentLanguage;
+
             TranslateUI();
         }
 
@@ -188,6 +192,15 @@ namespace Nlk_Cheffie_Print.Views
 
             this.DialogResult = DialogResult.OK;
             this.Close();
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            base.OnFormClosing(e);
+            if (DialogResult != DialogResult.OK)
+            {
+                LocalizationService.CurrentLanguage = _originalLanguage;
+            }
         }
     }
 }

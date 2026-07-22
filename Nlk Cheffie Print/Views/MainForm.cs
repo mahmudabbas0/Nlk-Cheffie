@@ -299,6 +299,9 @@ namespace Nlk_Cheffie_Print.Views
             _designerControl?.TranslateUI();
 
             TranslateTrayMenu();
+
+            this.PerformLayout();
+            this.Refresh();
         }
 
         private void ConfigureNavButton(Button btn)

@@ -15,13 +15,13 @@ namespace Nlk_Cheffie_Print.Core
         public string Theme { get; set; } = "dark";
 
         [JsonPropertyName("dry_run")]
-        public bool DryRun { get; set; } = true;
+        public bool DryRun { get; set; } = false;
 
         [JsonPropertyName("graphic_mode")]
         public bool GraphicMode { get; set; } = false;
 
         [JsonPropertyName("auto_print_enabled")]
-        public bool AutoPrintEnabled { get; set; } = false;
+        public bool AutoPrintEnabled { get; set; } = true;
 
         [JsonPropertyName("auto_print_role")]
         public string AutoPrintRole { get; set; } = "kitchen";

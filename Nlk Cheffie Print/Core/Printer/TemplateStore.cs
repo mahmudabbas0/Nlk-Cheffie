@@ -126,8 +126,8 @@ namespace Nlk_Cheffie_Print.Core.Printer
             // Rich default template matching modern restaurant receipts
             template.Header.Add(new TemplateElement { Type = "logo", Align = "center" });
             template.Header.Add(new TemplateElement { Type = "text", Content = "{restoran_adi}", Font = "B", Align = "center" });
-            template.Header.Add(new TemplateElement { Type = "text", Content = "{L_adres}: {restoran_adres}", Align = "center" });
-            template.Header.Add(new TemplateElement { Type = "text", Content = "{L_tel}: {restoran_telefon}", Align = "center" });
+            template.Header.Add(new TemplateElement { Type = "text", Content = "{L_adres}: {restoran_adres}", Align = "left" });
+            template.Header.Add(new TemplateElement { Type = "text", Content = "{L_tel}: {restoran_telefon}", Align = "left" });
             template.Header.Add(new TemplateElement { Type = "separator" });
 
             template.Header.Add(new TemplateElement { Type = "text", Content = "{L_masa}: {masa_adi}", Font = "B", Align = "left" });
@@ -143,6 +143,14 @@ namespace Nlk_Cheffie_Print.Core.Printer
             template.Footer.Add(new TemplateElement { Type = "text", Content = "{L_kdv}: {kdv_toplam} TL", Align = "left" });
             template.Footer.Add(new TemplateElement { Type = "text", Content = "{L_total}: {toplam_tutar} TL", Font = "B", Align = "left" });
             template.Footer.Add(new TemplateElement { Type = "separator" });
+
+            // Customer Info block (only prints if customer name/phone is present)
+            template.Footer.Add(new TemplateElement { Type = "text", Content = "--- {L_customer_info} ---", Font = "B", Align = "left" });
+            template.Footer.Add(new TemplateElement { Type = "text", Content = "{L_customer_name}: {musteri_adi}", Align = "left" });
+            template.Footer.Add(new TemplateElement { Type = "text", Content = "{L_customer_phone}: {musteri_telefon}", Align = "left" });
+            template.Footer.Add(new TemplateElement { Type = "text", Content = "{L_delivery_address}: {teslimat_adresi}", Align = "left" });
+            template.Footer.Add(new TemplateElement { Type = "separator" });
+
             template.Footer.Add(new TemplateElement { Type = "text", Content = "{L_afiyet_olsun}", Align = "center" });
             template.Footer.Add(new TemplateElement { Type = "separator" });
             template.Footer.Add(new TemplateElement { Type = "text", Content = "Powered by NlkCheffie", Align = "center" });

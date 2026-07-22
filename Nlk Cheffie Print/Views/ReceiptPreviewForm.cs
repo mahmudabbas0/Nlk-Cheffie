@@ -332,39 +332,39 @@ namespace Nlk_Cheffie_Print.Views
 
         private static string TranslateStatus(string status) => status.ToLowerInvariant() switch
         {
-            "pending"    => "⏳ Beklemede",
-            "accepted"   => "✓ Onaylandı",
-            "preparing"  => "🍳 Hazırlanıyor",
-            "ready"      => "🔔 Hazır",
-            "on_the_way" => "🛵 Yolda",
-            "delivered"  => "✅ Teslim Edildi",
-            "canceled"   => "• İptal Edildi",
+            "pending"    => LocalizationService.T("orders.status.pending", "⏳ Beklemede"),
+            "accepted"   => LocalizationService.T("orders.status.accepted", "✓ Onaylandı"),
+            "preparing"  => LocalizationService.T("orders.status.preparing", "🍳 Hazırlanıyor"),
+            "ready"      => LocalizationService.T("orders.status.ready", "🔔 Hazır"),
+            "on_the_way" => LocalizationService.T("orders.status.on_the_way", "🛵 Yolda"),
+            "delivered"  => LocalizationService.T("orders.status.delivered", "✅ Teslim Edildi"),
+            "canceled"   => LocalizationService.T("orders.status.canceled", "• İptal Edildi"),
             _            => status
         };
 
         private static string TranslatePaymentMethod(string method) => method.ToLowerInvariant() switch
         {
-            "cash"   => "Nakit",
-            "card"   => "Kart",
-            "online" => "Online",
+            "cash"   => LocalizationService.T("payment.methods.cash", "Nakit"),
+            "card"   => LocalizationService.T("payment.methods.card", "Kart"),
+            "online" => LocalizationService.T("payment.methods.online", "Online"),
             _        => method
         };
 
         private static string TranslatePaymentStatus(string status) => status.ToLowerInvariant() switch
         {
-            "pending" => "Bekliyor",
-            "paid"    => "Ödendi",
-            "waiting" => "Bekliyor",
-            "error"   => "Hata",
-            "refunded"=> "İade",
+            "pending" => LocalizationService.T("payment.status.pending", "Bekliyor"),
+            "paid"    => LocalizationService.T("payment.status.paid", "Ödendi"),
+            "waiting" => LocalizationService.T("payment.status.pending", "Bekliyor"),
+            "error"   => LocalizationService.T("payment.status.error", "Hata"),
+            "refunded"=> LocalizationService.T("payment.status.refunded", "İade"),
             _         => status
         };
 
         private static string TranslateSection(string section) => section.ToLowerInvariant() switch
         {
-            "kitchen" => "Mutfak",
-            "cashier" => "Kasa",
-            "courier" => "Kurye",
+            "kitchen" => LocalizationService.T("settings.kitchen", "Mutfak"),
+            "cashier" => LocalizationService.T("settings.cashier", "Kasa"),
+            "courier" => LocalizationService.T("settings.courier", "Kurye"),
             _         => section
         };
 

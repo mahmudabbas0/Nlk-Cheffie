@@ -45,9 +45,23 @@ namespace Nlk_Cheffie_Print.Views.Controls
             SetupGridColumns();
             ThemeManager.ApplyTheme(this);
             TranslateUI();
+            
+            // Allow check boxes to be editable, but make other columns read-only
+            dgvOrders.ReadOnly = false;
+            foreach (DataGridViewColumn col in dgvOrders.Columns)
+            {
+                if (col.Name != "colCheck")
+                {
+                    col.ReadOnly = true;
+                }
+            }
+
             dgvOrders.CellPainting += dgvOrders_CellPainting;
             dgvOrders.CellMouseEnter += dgvOrders_CellMouseEnter;
             dgvOrders.CellMouseLeave += dgvOrders_CellMouseLeave;
+            dgvOrders.CellFormatting += dgvOrders_CellFormatting;
+            dgvOrders.CellClick += dgvOrders_CellClick;
+            dgvOrders.CurrentCellDirtyStateChanged += dgvOrders_CurrentCellDirtyStateChanged;
             MainForm.OrderListChanged += OnOrderListChanged;
 
             // Connect FlatScrollBar to DataGridView
@@ -76,6 +90,9 @@ namespace Nlk_Cheffie_Print.Views.Controls
         {
             LocalizationService.LanguageChanged -= TranslateUI;
             MainForm.OrderListChanged           -= OnOrderListChanged;
+            dgvOrders.CellFormatting            -= dgvOrders_CellFormatting;
+            dgvOrders.CellClick                 -= dgvOrders_CellClick;
+            dgvOrders.CurrentCellDirtyStateChanged -= dgvOrders_CurrentCellDirtyStateChanged;
             base.OnHandleDestroyed(e);
         }
 
@@ -88,6 +105,20 @@ namespace Nlk_Cheffie_Print.Views.Controls
             dgvOrders.AutoGenerateColumns = false;
             dgvOrders.DataError  += (s, ev) => ev.ThrowException = false;
             dgvOrders.ScrollBars  = ScrollBars.None;
+
+            // Add Checkbox Column at index 0 for Multi-Select
+            var checkCol = new DataGridViewCheckBoxColumn
+            {
+                Name = "colCheck",
+                HeaderText = "",
+                Width = 40,
+                MinimumWidth = 40,
+                Resizable = DataGridViewTriState.False,
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
+                FlatStyle = FlatStyle.Flat
+            };
+            checkCol.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            dgvOrders.Columns.Add(checkCol);
 
             dgvOrders.Columns.Add(new DataGridViewTextBoxColumn
             {
@@ -175,9 +206,17 @@ namespace Nlk_Cheffie_Print.Views.Controls
 
             if (btnApprove != null) btnApprove.Text = LocalizationService.T("orders.actions.accept");
             if (btnCancel  != null) btnCancel.Text  = LocalizationService.T("orders.actions.reject");
-            if (btnRefresh != null) btnRefresh.Text = LocalizationService.T("orders.actions.refresh");
+            if (btnSelectAll != null)
+            {
+                btnSelectAll.Text = _allSelectedState
+                    ? LocalizationService.T("orders.actions.deselect_all", "Seçimi Kaldır")
+                    : LocalizationService.T("orders.actions.select_all", "Tümünü Seç");
+            }
 
             UpdatePaginationUI();
+
+            dgvOrders.Invalidate();
+            dgvOrders.Update();
         }
 
         private void SetColHeader(string colName, string key)
@@ -436,8 +475,8 @@ namespace Nlk_Cheffie_Print.Views.Controls
             {
                 Id              = GetJsonStr(root, "id"),
                 OrderNumber     = GetJsonStr(root, "order_number"),
-                Status          = TranslateStatus(GetJsonStr(root, "status")),
-                PaymentMethod   = TranslatePaymentMethod(GetJsonStr(root, "payment_method")),
+                Status          = GetJsonStr(root, "status"),
+                PaymentMethod   = GetJsonStr(root, "payment_method"),
                 PaymentStatus   = GetJsonStr(root, "payment_status"),
                 OrderNote       = GetJsonStr(root, "notes"),
                 CustomerName    = GetJsonStr(root, "customer_name"),
@@ -471,7 +510,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
 
             // Waiter / Section (not in API OrderResource — WebSocket / log shape)
             order.WaiterName = GetJsonStr(root, "waiter");
-            order.Section    = TranslateSection(GetJsonStr(root, "role"));
+            order.Section    = GetJsonStr(root, "role");
 
             // order_info fallback (WebSocket/log shape)
             if (root.TryGetProperty("order_info", out var oi) && oi.ValueKind == JsonValueKind.Object)
@@ -479,9 +518,9 @@ namespace Nlk_Cheffie_Print.Views.Controls
                 if (string.IsNullOrEmpty(order.OrderNumber))   order.OrderNumber   = GetJsonStr(oi, "order_number");
                 if (string.IsNullOrEmpty(order.TableName))     order.TableName     = GetJsonStr(oi, "table_name");
                 if (string.IsNullOrEmpty(order.WaiterName))    order.WaiterName    = GetJsonStr(oi, "waiter_name");
-                if (string.IsNullOrEmpty(order.Section))       order.Section       = TranslateSection(GetJsonStr(oi, "section"));
-                if (string.IsNullOrEmpty(order.Status))        order.Status        = TranslateStatus(GetJsonStr(oi, "status"));
-                if (string.IsNullOrEmpty(order.PaymentMethod)) order.PaymentMethod = TranslatePaymentMethod(GetJsonStr(oi, "payment_method"));
+                if (string.IsNullOrEmpty(order.Section))       order.Section       = GetJsonStr(oi, "section");
+                if (string.IsNullOrEmpty(order.Status))        order.Status        = GetJsonStr(oi, "status");
+                if (string.IsNullOrEmpty(order.PaymentMethod)) order.PaymentMethod = GetJsonStr(oi, "payment_method");
                 if (string.IsNullOrEmpty(order.PaymentStatus)) order.PaymentStatus = GetJsonStr(oi, "payment_status");
                 if (string.IsNullOrEmpty(order.PaymentStatus)) order.PaymentStatus = GetJsonStr(oi, "payment_state");
                 if (string.IsNullOrEmpty(order.OrderNote))     order.OrderNote     = GetJsonStr(oi, "order_note");
@@ -677,36 +716,111 @@ namespace Nlk_Cheffie_Print.Views.Controls
         // ────────────────────────────────────────────────────────────────
         private void btnApprove_Click(object sender, EventArgs e)
         {
-            if (dgvOrders.SelectedRows.Count == 0) return;
+            dgvOrders.EndEdit();
+            var targetOrders = new List<Order>();
+
+            // Collect checked rows
+            foreach (DataGridViewRow row in dgvOrders.Rows)
+            {
+                if (row.Cells["colCheck"] != null && Convert.ToBoolean(row.Cells["colCheck"].Value))
+                {
+                    if (row.DataBoundItem is Order o)
+                    {
+                        targetOrders.Add(o);
+                    }
+                }
+            }
+
+            // Fallback to selected rows if no checkboxes are checked
+            if (targetOrders.Count == 0)
+            {
+                foreach (DataGridViewRow row in dgvOrders.SelectedRows)
+                {
+                    if (row.DataBoundItem is Order o)
+                    {
+                        targetOrders.Add(o);
+                    }
+                }
+            }
+
+            if (targetOrders.Count == 0) return;
+
             MessageBox.Show(
                 LocalizationService.T("orders.dialogs.print_queued"),
                 LocalizationService.T("orders.actions.accept"),
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-            foreach (DataGridViewRow row in dgvOrders.SelectedRows)
-                if (row.DataBoundItem is Order o)
-                    o.Status = LocalizationService.T("orders.status.accepted");
+            foreach (var o in targetOrders)
+                o.Status = "accepted";
 
             RefreshGridData();
         }
 
         private void btnCancel_Click(object sender, EventArgs e)
         {
-            if (dgvOrders.SelectedRows.Count == 0) return;
-            if (MessageBox.Show(
-                    LocalizationService.T("orders.dialogs.reject_msg"),
-                    LocalizationService.T("orders.dialogs.reject_title"),
-                    MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+            dgvOrders.EndEdit();
+            var targetOrders = new List<Order>();
 
-            foreach (DataGridViewRow row in dgvOrders.SelectedRows)
-                if (row.DataBoundItem is Order o)
-                    o.Status = LocalizationService.T("orders.status.canceled");
+            // Collect checked rows
+            foreach (DataGridViewRow row in dgvOrders.Rows)
+            {
+                if (row.Cells["colCheck"] != null && Convert.ToBoolean(row.Cells["colCheck"].Value))
+                {
+                    if (row.DataBoundItem is Order o)
+                    {
+                        targetOrders.Add(o);
+                    }
+                }
+            }
+
+            // Fallback to selected rows if no checkboxes are checked
+            if (targetOrders.Count == 0)
+            {
+                foreach (DataGridViewRow row in dgvOrders.SelectedRows)
+                {
+                    if (row.DataBoundItem is Order o)
+                    {
+                        targetOrders.Add(o);
+                    }
+                }
+            }
+
+            if (targetOrders.Count == 0) return;
+
+            if (ConfirmDialog.Show(
+                    this,
+                    LocalizationService.T("orders.dialogs.reject_title"),
+                    LocalizationService.T("orders.dialogs.reject_msg")) != DialogResult.Yes) return;
+
+            foreach (var o in targetOrders)
+                o.Status = "canceled";
 
             RefreshGridData();
         }
 
-        private void btnRefresh_Click(object sender, EventArgs e)
-            => _ = LoadOrders(1);
+        private bool _allSelectedState = false;
+        private void btnSelectAll_Click(object sender, EventArgs e)
+        {
+            _allSelectedState = !_allSelectedState;
+
+            if (btnSelectAll != null)
+            {
+                btnSelectAll.Text = _allSelectedState
+                    ? LocalizationService.T("orders.actions.deselect_all", "Seçimi Kaldır")
+                    : LocalizationService.T("orders.actions.select_all", "Tümünü Seç");
+            }
+
+            foreach (DataGridViewRow row in dgvOrders.Rows)
+            {
+                if (row.Cells["colCheck"] != null)
+                {
+                    row.Cells["colCheck"].Value = _allSelectedState;
+                }
+            }
+
+            dgvOrders.EndEdit();
+            dgvOrders.Invalidate();
+        }
 
         private void dtpDate_ValueChanged(object sender, EventArgs e)
             => _ = LoadOrders(1);
@@ -716,6 +830,31 @@ namespace Nlk_Cheffie_Print.Views.Controls
             if (e.RowIndex >= 0 && dgvOrders.Columns[e.ColumnIndex].Name == "colDetail"
                 && dgvOrders.Rows[e.RowIndex].DataBoundItem is Order order)
                 _ = ShowOrderDetailAsync(order);
+        }
+
+        private void dgvOrders_CellClick(object? sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
+            {
+                string colName = dgvOrders.Columns[e.ColumnIndex].Name;
+                if (colName != "colDetail")
+                {
+                    dgvOrders.EndEdit();
+                    var cell = dgvOrders.Rows[e.RowIndex].Cells["colCheck"];
+                    bool isChecked = Convert.ToBoolean(cell.Value);
+                    cell.Value = !isChecked;
+                    dgvOrders.EndEdit();
+                    dgvOrders.InvalidateRow(e.RowIndex);
+                }
+            }
+        }
+
+        private void dgvOrders_CurrentCellDirtyStateChanged(object? sender, EventArgs e)
+        {
+            if (dgvOrders.IsCurrentCellDirty)
+            {
+                dgvOrders.CommitEdit(DataGridViewDataErrorContexts.Commit);
+            }
         }
 
         private void dgvOrders_CellMouseEnter(object? sender, DataGridViewCellEventArgs e)
@@ -793,12 +932,138 @@ namespace Nlk_Cheffie_Print.Views.Controls
             _         => status
         };
 
+        private void dgvOrders_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
+            {
+                // Dynamic cell background driven by checkbox value
+                bool isChecked = false;
+                var checkCell = dgvOrders.Rows[e.RowIndex].Cells["colCheck"];
+                if (checkCell != null && checkCell.Value != null && checkCell.Value != DBNull.Value)
+                {
+                    isChecked = Convert.ToBoolean(checkCell.Value);
+                }
+
+                if (isChecked)
+                {
+                    e.CellStyle.BackColor = Color.FromArgb(44, 44, 46);
+                    e.CellStyle.SelectionBackColor = Color.FromArgb(44, 44, 46);
+                }
+                else
+                {
+                    e.CellStyle.BackColor = e.RowIndex % 2 == 0 ? dgvOrders.DefaultCellStyle.BackColor : dgvOrders.AlternatingRowsDefaultCellStyle.BackColor;
+                    e.CellStyle.SelectionBackColor = e.CellStyle.BackColor; // Neutralize default Windows selection color
+                }
+
+                string colName = dgvOrders.Columns[e.ColumnIndex].Name;
+                if (colName == "colSection")
+                {
+                    if (e.Value is string val)
+                    {
+                        e.Value = TranslateSection(val);
+                        e.FormattingApplied = true;
+                    }
+                }
+                else if (colName == "colStatus")
+                {
+                    if (e.Value is string val)
+                    {
+                        e.Value = TranslateStatus(val);
+                        e.FormattingApplied = true;
+
+                        Color color = Color.White;
+                        string lowerVal = val.ToLowerInvariant();
+                        if (lowerVal == "accepted" || lowerVal == "confirmed" || lowerVal.Contains("onay"))
+                            color = Color.FromArgb(46, 204, 113); // Vibrant Green
+                        else if (lowerVal == "canceled" || lowerVal == "rejected" || lowerVal.Contains("iptal"))
+                            color = Color.FromArgb(231, 76, 60); // Vibrant Red
+                        else if (lowerVal == "pending" || lowerVal.Contains("bekle"))
+                            color = Color.FromArgb(241, 196, 15); // Vibrant Yellow/Orange
+                        else if (lowerVal == "preparing" || lowerVal.Contains("hazır"))
+                            color = Color.FromArgb(52, 152, 219); // Bright Blue
+                        else if (lowerVal == "ready")
+                            color = Color.FromArgb(155, 89, 182); // Bright Purple
+                        else if (lowerVal == "on_the_way" || lowerVal == "delivered")
+                            color = Color.FromArgb(26, 188, 156); // Turquoise Teal
+
+                        e.CellStyle.ForeColor = color;
+                        e.CellStyle.SelectionForeColor = color;
+                    }
+                }
+            }
+        }
+
         private void dgvOrders_CellPainting(object? sender, DataGridViewCellPaintingEventArgs e)
         {
             if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
             {
                 string colName = dgvOrders.Columns[e.ColumnIndex].Name;
-                if (colName == "colPayment")
+                if (colName == "colCheck")
+                {
+                    // Paint background first
+                    e.PaintBackground(e.CellBounds, true);
+
+                    // Check if selected or hovered
+                    bool isSelected = (e.State & DataGridViewElementStates.Selected) != 0;
+
+                    // Get checkbox state
+                    bool isChecked = false;
+                    if (e.Value != null && e.Value != DBNull.Value)
+                    {
+                        isChecked = Convert.ToBoolean(e.Value);
+                    }
+
+                    // Size and location of the checkbox rectangle
+                    int boxSize = 18;
+                    int bx = e.CellBounds.X + (e.CellBounds.Width - boxSize) / 2;
+                    int by = e.CellBounds.Y + (e.CellBounds.Height - boxSize) / 2;
+                    var boxRect = new Rectangle(bx, by, boxSize, boxSize);
+
+                    if (e.Graphics != null)
+                    {
+                        e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+                        if (isChecked)
+                        {
+                            // Checked: fill with orange and draw a bold checkmark
+                            using (var fillBrush = new SolidBrush(ThemeManager.ColorAccent))
+                            {
+                                e.Graphics.FillRectangle(fillBrush, boxRect);
+                            }
+
+                            // Draw a nice white checkmark (✓) inside
+                            using (var font = new Font("Segoe UI", 9.5f, FontStyle.Bold))
+                            using (var brushText = new SolidBrush(Color.Black)) // Black text on Orange check looks very clean
+                            {
+                                var size = e.Graphics.MeasureString("✓", font);
+                                float tx = bx + (boxSize - size.Width) / 2 + 1;
+                                float ty = by + (boxSize - size.Height) / 2 + 1;
+                                e.Graphics.DrawString("✓", font, brushText, tx, ty);
+                            }
+                        }
+                        else
+                        {
+                            // Unchecked: empty square with light gray border
+                            Color borderCol = Color.FromArgb(120, 120, 125);
+                            using (var pen = new Pen(borderCol, 1.5f))
+                            {
+                                e.Graphics.DrawRectangle(pen, boxRect);
+                            }
+                        }
+
+                        // Draw orange left indicator bar if row is checked
+                        if (isChecked)
+                        {
+                            using (var brush = new SolidBrush(ThemeManager.ColorAccent))
+                            {
+                                e.Graphics.FillRectangle(brush, e.CellBounds.X, e.CellBounds.Y, 4, e.CellBounds.Height);
+                            }
+                        }
+                    }
+
+                    e.Handled = true;
+                }
+                else if (colName == "colPayment")
                 {
                     // Draw background
                     e.PaintBackground(e.CellBounds, true);

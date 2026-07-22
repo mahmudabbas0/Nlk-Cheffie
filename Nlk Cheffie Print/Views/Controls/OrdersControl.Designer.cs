@@ -35,7 +35,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
             this.dgvOrders     = new System.Windows.Forms.DataGridView();
             this.flatScrollBar = new Nlk_Cheffie_Print.Core.FlatScrollBar();
             this.pnlActions    = new System.Windows.Forms.Panel();
-            this.btnRefresh    = new System.Windows.Forms.Button();
+            this.btnSelectAll  = new System.Windows.Forms.Button();
             this.btnCancel     = new System.Windows.Forms.Button();
             this.btnApprove    = new System.Windows.Forms.Button();
             this.pnlPagination = new System.Windows.Forms.Panel();
@@ -157,7 +157,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
             // 
             // pnlActions
             // 
-            this.pnlActions.Controls.Add(this.btnRefresh);
+            this.pnlActions.Controls.Add(this.btnSelectAll);
             this.pnlActions.Controls.Add(this.btnCancel);
             this.pnlActions.Controls.Add(this.btnApprove);
             this.pnlActions.Dock = System.Windows.Forms.DockStyle.Bottom;
@@ -166,16 +166,16 @@ namespace Nlk_Cheffie_Print.Views.Controls
             this.pnlActions.Size = new System.Drawing.Size(800, 60);
             this.pnlActions.TabIndex = 2;
             // 
-            // btnRefresh
+            // btnSelectAll
             // 
-            this.btnRefresh.Location = new System.Drawing.Point(340, 13);
-            this.btnRefresh.Name = "btnRefresh";
-            this.btnRefresh.Size = new System.Drawing.Size(120, 34);
-            this.btnRefresh.TabIndex = 2;
-            this.btnRefresh.Tag = "Secondary";
-            this.btnRefresh.Text = "Yenile";
-            this.btnRefresh.UseVisualStyleBackColor = true;
-            this.btnRefresh.Click += new System.EventHandler(this.btnRefresh_Click);
+            this.btnSelectAll.Location = new System.Drawing.Point(340, 13);
+            this.btnSelectAll.Name = "btnSelectAll";
+            this.btnSelectAll.Size = new System.Drawing.Size(120, 34);
+            this.btnSelectAll.TabIndex = 2;
+            this.btnSelectAll.Tag = "Secondary";
+            this.btnSelectAll.Text = "Tümünü Seç";
+            this.btnSelectAll.UseVisualStyleBackColor = true;
+            this.btnSelectAll.Click += new System.EventHandler(this.btnSelectAll_Click);
             // 
             // btnCancel
             // 
@@ -239,7 +239,7 @@ namespace Nlk_Cheffie_Print.Views.Controls
         private System.Windows.Forms.Label     lblPageInfo;
         private System.Windows.Forms.Button    btnNextPage;
         private System.Windows.Forms.Panel     pnlActions;
-        private System.Windows.Forms.Button    btnRefresh;
+        private System.Windows.Forms.Button    btnSelectAll;
         private System.Windows.Forms.Button    btnCancel;
         private System.Windows.Forms.Button    btnApprove;
     }
