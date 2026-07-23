@@ -14,14 +14,16 @@ namespace Nlk_Cheffie_Print.Core.Net
     {
         private CancellationTokenSource? _cts;
         private bool _isRunning;
+        private bool _hasCompletedInitialPoll;
         private HashSet<string> _seenOrderIds = new HashSet<string>();
 
-        public event Action<JsonElement, string>? OrderReceived;
+        public event Action<JsonElement, string, bool>? OrderReceived;
 
         public void Start()
         {
             _cts = new CancellationTokenSource();
             _isRunning = true;
+            _hasCompletedInitialPoll = false;
             _seenOrderIds.Clear();
 
             Task.Run(() => RunApiPollLoop(_cts.Token));
@@ -92,6 +94,8 @@ namespace Nlk_Cheffie_Print.Core.Net
 
                                 if (ordersElement.ValueKind == JsonValueKind.Array)
                                 {
+                                    bool isInitialSync = !_hasCompletedInitialPoll;
+
                                     foreach (var order in ordersElement.EnumerateArray())
                                     {
                                         if (order.ValueKind != JsonValueKind.Object) continue;
@@ -111,9 +115,11 @@ namespace Nlk_Cheffie_Print.Core.Net
                                         string autoRole = app.AutoPrintRole;
                                         if (string.IsNullOrEmpty(autoRole)) autoRole = "kitchen";
 
-                                        OrderReceived?.Invoke(finalOrder, autoRole);
+                                        OrderReceived?.Invoke(finalOrder, autoRole, isInitialSync);
                                         _seenOrderIds.Add(oid);
                                     }
+
+                                    _hasCompletedInitialPoll = true;
                                 }
                             }
                             backoff = 5; // Reset backoff

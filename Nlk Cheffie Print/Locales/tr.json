@@ -39,6 +39,9 @@
     "dry_run": "Deneme modu (fişleri kuyruğa yaz, gerçek yazıcıya gönderme)",
     "graphic_mode": "Grafik mod (bitmap baskı, Türkçe karakter sorunsuz)",
     "auto_print": "Otomatik fatura yazdir (yeni sipariş gelince)",
+    "popup_notifications": "Yeni sipariş pop-up bildirimi göster",
+    "order_sound": "Sipariş gelince sesli ikaz çal",
+    "printer_buzzer": "Yazıcı zili / bip sesini çal (Buzzer)",
     "auto_print_role": "Otomatik Fiş Tipi:",
     "connection": "Bağlantı",
     "server_url": "Sunucu API URL:",
@@ -59,6 +62,10 @@
     "reset_confirm_msg": "Bu bilgisayardaki restoran bağlantısını sıfırlamak istediğinize emin misiniz?\n\nKayıtlı giriş bilgileri silinecek.",
     "reset_success_title": "Bağlantı sıfırlandı",
     "reset_success_msg": "Restoran bağlantısı başarıyla sıfırlandı."
+  },
+  "notifications": {
+    "new_order_title": "Yeni Sipariş Geldi!",
+    "view": "Görüntüle"
   },
   "printers": {
     "title": "YAZICILAR VE ROLLER",

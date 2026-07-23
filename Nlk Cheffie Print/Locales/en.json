@@ -39,6 +39,9 @@
     "dry_run": "Dry run (queue jobs, do not send to real printer)",
     "graphic_mode": "Graphic mode (bitmap print, better character support)",
     "auto_print": "Auto print invoice (on new order)",
+    "popup_notifications": "Show new order pop-up notification",
+    "order_sound": "Play sound alert on new order",
+    "printer_buzzer": "Sound printer buzzer / bell on print",
     "auto_print_role": "Auto Print Role:",
     "connection": "Connection",
     "server_url": "Server API URL:",
@@ -59,6 +62,10 @@
     "reset_confirm_msg": "Are you sure you want to reset the restaurant connection on this computer?\n\nSaved credentials will be deleted.",
     "reset_success_title": "Connection Reset",
     "reset_success_msg": "Restaurant connection has been reset successfully."
+  },
+  "notifications": {
+    "new_order_title": "New Order Received!",
+    "view": "View Order"
   },
   "printers": {
     "title": "PRINTERS AND ROLES",

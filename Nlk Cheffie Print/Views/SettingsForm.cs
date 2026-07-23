@@ -41,6 +41,10 @@ namespace Nlk_Cheffie_Print.Views
             chkDryRun.Text = LocalizationService.T("settings.dry_run");
             chkGraphicMode.Text = LocalizationService.T("settings.graphic_mode");
             chkAutoPrint.Text = LocalizationService.T("settings.auto_print");
+            chkPopupNotifications.Text = LocalizationService.T("settings.popup_notifications", "Yeni sipariş pop-up bildirimi göster");
+            chkOrderSound.Text = LocalizationService.T("settings.order_sound", "Sipariş gelince sesli ikaz çal");
+            chkPrinterBuzzer.Text = LocalizationService.T("settings.printer_buzzer", "Yazıcı zili / bip sesini çal (Buzzer)");
+
             lblAutoPrintRole.Text = LocalizationService.T("settings.auto_print_role");
             lblLanguage.Text = LocalizationService.T("settings.language");
 
@@ -84,6 +88,9 @@ namespace Nlk_Cheffie_Print.Views
             chkDryRun.Checked = app.DryRun;
             chkGraphicMode.Checked = app.GraphicMode;
             chkAutoPrint.Checked = app.AutoPrintEnabled;
+            chkPopupNotifications.Checked = app.EnablePopupNotifications;
+            chkOrderSound.Checked = app.EnableOrderSound;
+            chkPrinterBuzzer.Checked = app.EnablePrinterBuzzer;
             txtApiUrl.Text = app.ApiBaseUrl;
 
             // Select active role
@@ -180,6 +187,9 @@ namespace Nlk_Cheffie_Print.Views
             app.DryRun = chkDryRun.Checked;
             app.GraphicMode = chkGraphicMode.Checked;
             app.AutoPrintEnabled = chkAutoPrint.Checked;
+            app.EnablePopupNotifications = chkPopupNotifications.Checked;
+            app.EnableOrderSound = chkOrderSound.Checked;
+            app.EnablePrinterBuzzer = chkPrinterBuzzer.Checked;
             app.ApiBaseUrl = apiUrl;
 
             if (cmbAutoPrintRole.SelectedItem != null)

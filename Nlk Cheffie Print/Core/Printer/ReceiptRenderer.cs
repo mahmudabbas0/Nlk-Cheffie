@@ -50,7 +50,31 @@ namespace Nlk_Cheffie_Print.Core.Printer
             writer.Write(new byte[] { 0x0A, 0x0A, 0x0A, 0x0A }); // 4 line feeds
             writer.Write(new byte[] { 0x1D, 0x56, 0x41, 0x03 }); // Cut command
 
+            // Sound printer buzzer / bell if enabled in configuration
+            if (ConfigManager.Current.App.EnablePrinterBuzzer)
+            {
+                writer.Write(GetBuzzerBytes());
+            }
+
             return ms.ToArray();
+        }
+
+        public static byte[] GetBuzzerBytes()
+        {
+            using (var ms = new MemoryStream())
+            using (var writer = new BinaryWriter(ms))
+            {
+                // Standard ESC/POS Beep Command: ESC B (3 beeps, duration 2)
+                writer.Write(new byte[] { 0x1B, 0x42, 0x03, 0x02 });
+
+                // Real-time buzzer pulse: DLE DC4 1 n t (0x10 0x14 0x01 0x02 0x05)
+                writer.Write(new byte[] { 0x10, 0x14, 0x01, 0x02, 0x05 });
+
+                // ASCII BEL (Bell tone)
+                writer.Write((byte)0x07);
+
+                return ms.ToArray();
+            }
         }
 
         private static void RenderSectionEscPos(List<TemplateElement> section, Dictionary<string, string> ctx, BinaryWriter writer, JsonElement data)
@@ -282,9 +306,9 @@ namespace Nlk_Cheffie_Print.Core.Printer
                 int margin = 16;
                 int usableWidth = widthPx - (margin * 2);
 
-                using (Font fnNormal = new Font("Courier New", 10, FontStyle.Regular))
-                using (Font fnBold = new Font("Courier New", 10, FontStyle.Bold))
-                using (Font fnHeader = new Font("Courier New", 14, FontStyle.Bold))
+                using (Font fnNormal = new Font("Courier New", 12.5f, FontStyle.Regular))
+                using (Font fnBold = new Font("Courier New", 12.5f, FontStyle.Bold))
+                using (Font fnHeader = new Font("Courier New", 16.5f, FontStyle.Bold))
                 using (Brush brush = new SolidBrush(Color.Black))
                 {
                     // Compute height offset first
@@ -315,11 +339,11 @@ namespace Nlk_Cheffie_Print.Core.Printer
             else if (fam == "mono" || fam == "monospace") familyName = "Consolas";
             else if (fam == "sans" || fam == "sans-serif" || fam == "segoe") familyName = "Segoe UI";
 
-            float sizePt = 10f;
+            float sizePt = 12.5f;
             string sz = (el.Size ?? "").ToLowerInvariant();
-            if (sz == "1.5x" || sz == "medium" || sz == "orta") sizePt = 12f;
-            else if (sz == "2x" || sz == "large" || sz == "buyuk" || sz == "büyük") sizePt = 14f;
-            else if (sz == "3x" || sz == "xlarge" || sz == "cok_buyuk" || sz == "çok büyük") sizePt = 18f;
+            if (sz == "1.5x" || sz == "medium" || sz == "orta") sizePt = 16f;
+            else if (sz == "2x" || sz == "large" || sz == "buyuk" || sz == "büyük") sizePt = 20f;
+            else if (sz == "3x" || sz == "xlarge" || sz == "cok_buyuk" || sz == "çok büyük") sizePt = 26f;
 
             FontStyle style = (el.Font == "B" || (el.Font ?? "").ToLowerInvariant() == "bold") ? FontStyle.Bold : FontStyle.Regular;
 
@@ -629,7 +653,8 @@ namespace Nlk_Cheffie_Print.Core.Printer
             {
                 bool hasName = ctx.TryGetValue("musteri_adi", out string? name) && !string.IsNullOrWhiteSpace(name);
                 bool hasPhone = ctx.TryGetValue("musteri_telefon", out string? phone) && !string.IsNullOrWhiteSpace(phone);
-                if (!hasName && !hasPhone) return true;
+                bool hasAddress = ctx.TryGetValue("teslimat_adresi", out string? addr) && !string.IsNullOrWhiteSpace(addr);
+                if (!hasName && !hasPhone && !hasAddress) return true;
             }
 
             // If it has no placeholders, never skip it

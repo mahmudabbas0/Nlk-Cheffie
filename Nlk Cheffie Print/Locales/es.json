@@ -60,6 +60,10 @@
     "reset_success_title": "Conexión restablecida",
     "reset_success_msg": "La conexión del restaurante se ha restablecido con éxito."
   },
+  "notifications": {
+    "new_order_title": "¡Nuevo Pedido Recibido!",
+    "view": "Ver Pedido"
+  },
   "printers": {
     "title": "IMPRESORAS Y ROLES",
     "subtitle": "Agregue impresoras USB e IP, asigne roles.",

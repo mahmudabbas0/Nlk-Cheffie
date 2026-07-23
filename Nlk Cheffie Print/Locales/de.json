@@ -58,7 +58,11 @@
     "reset_confirm_title": "Verbindung zurücksetzen",
     "reset_confirm_msg": "Sind Sie sicher, dass Sie die Restaurant-Verbindung auf diesem Computer zurücksetzen möchten?\n\nGespeicherte Anmeldedaten werden gelöscht.",
     "reset_success_title": "Verbindung zurückgesetzt",
-    "reset_success_msg": "Die Verbindung zum Restaurant wurde erfolgreich zurückgesetzt."
+    "reset_success_msg": "Restaurantverbindung erfolgreich zurückgesetzt."
+  },
+  "notifications": {
+    "new_order_title": "Neue Bestellung Eingetroffen!",
+    "view": "Bestellung Anzeigen"
   },
   "printers": {
     "title": "DRUCKER UND ROLLEN",

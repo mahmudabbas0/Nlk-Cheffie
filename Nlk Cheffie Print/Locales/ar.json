@@ -57,8 +57,12 @@
     "language": "اللغة / Language",
     "reset_confirm_title": "إعادة تعيين الاتصال",
     "reset_confirm_msg": "هل أنت متأكد من رغبتك في إعادة تعيين اتصال المطعم على هذا الجهاز؟\n\nسيتم حذف جميع بيانات الاعتماد المحفوظة.",
-    "reset_success_title": "تمت إعادة التعيين",
-    "reset_success_msg": "تمت إعادة تعيين اتصال المطعم بنجاح."
+    "reset_success_title": "تم إعادة تعيين الاتصال",
+    "reset_success_msg": "تم إعادة تعيين اتصال المطعم بنجاح."
+  },
+  "notifications": {
+    "new_order_title": "تم استلام طلب جديد!",
+    "view": "عرض الطلب"
   },
   "printers": {
     "title": "الطابعات والأدوار",

@@ -36,6 +36,9 @@ namespace Nlk_Cheffie_Print.Views
             this.chkAutoPrint = new Nlk_Cheffie_Print.Core.FlatCheckBox();
             this.chkGraphicMode = new Nlk_Cheffie_Print.Core.FlatCheckBox();
             this.chkDryRun = new Nlk_Cheffie_Print.Core.FlatCheckBox();
+            this.chkPopupNotifications = new Nlk_Cheffie_Print.Core.FlatCheckBox();
+            this.chkOrderSound = new Nlk_Cheffie_Print.Core.FlatCheckBox();
+            this.chkPrinterBuzzer = new Nlk_Cheffie_Print.Core.FlatCheckBox();
             this.lblGeneralTitle = new System.Windows.Forms.Label();
             this.pnlConnectionCard = new System.Windows.Forms.Panel();
             this.btnResetConnection = new System.Windows.Forms.Button();
@@ -54,8 +57,41 @@ namespace Nlk_Cheffie_Print.Views
             this.pnlActions.SuspendLayout();
             this.SuspendLayout();
             // 
+            // chkPopupNotifications
+            // 
+            this.chkPopupNotifications.AutoSize = true;
+            this.chkPopupNotifications.Location = new System.Drawing.Point(15, 122);
+            this.chkPopupNotifications.Name = "chkPopupNotifications";
+            this.chkPopupNotifications.Size = new System.Drawing.Size(240, 19);
+            this.chkPopupNotifications.TabIndex = 4;
+            this.chkPopupNotifications.Text = "Yeni sipariş pop-up bildirimi göster";
+            this.chkPopupNotifications.UseVisualStyleBackColor = true;
+            // 
+            // chkOrderSound
+            // 
+            this.chkOrderSound.AutoSize = true;
+            this.chkOrderSound.Location = new System.Drawing.Point(15, 149);
+            this.chkOrderSound.Name = "chkOrderSound";
+            this.chkOrderSound.Size = new System.Drawing.Size(220, 19);
+            this.chkOrderSound.TabIndex = 5;
+            this.chkOrderSound.Text = "Sipariş gelince sesli ikaz çal";
+            this.chkOrderSound.UseVisualStyleBackColor = true;
+            // 
+            // chkPrinterBuzzer
+            // 
+            this.chkPrinterBuzzer.AutoSize = true;
+            this.chkPrinterBuzzer.Location = new System.Drawing.Point(15, 176);
+            this.chkPrinterBuzzer.Name = "chkPrinterBuzzer";
+            this.chkPrinterBuzzer.Size = new System.Drawing.Size(250, 19);
+            this.chkPrinterBuzzer.TabIndex = 6;
+            this.chkPrinterBuzzer.Text = "Yazıcı zili / bip sesini çal (Buzzer)";
+            this.chkPrinterBuzzer.UseVisualStyleBackColor = true;
+            // 
             // pnlGeneralCard
             // 
+            this.pnlGeneralCard.Controls.Add(this.chkPrinterBuzzer);
+            this.pnlGeneralCard.Controls.Add(this.chkOrderSound);
+            this.pnlGeneralCard.Controls.Add(this.chkPopupNotifications);
             this.pnlGeneralCard.Controls.Add(this.cmbLanguage);
             this.pnlGeneralCard.Controls.Add(this.lblLanguage);
             this.pnlGeneralCard.Controls.Add(this.cmbAutoPrintRole);
@@ -66,7 +102,7 @@ namespace Nlk_Cheffie_Print.Views
             this.pnlGeneralCard.Controls.Add(this.lblGeneralTitle);
             this.pnlGeneralCard.Location = new System.Drawing.Point(20, 20);
             this.pnlGeneralCard.Name = "pnlGeneralCard";
-            this.pnlGeneralCard.Size = new System.Drawing.Size(460, 200);
+            this.pnlGeneralCard.Size = new System.Drawing.Size(460, 260);
             this.pnlGeneralCard.TabIndex = 0;
             this.pnlGeneralCard.Tag = "Card";
             // 
@@ -74,10 +110,10 @@ namespace Nlk_Cheffie_Print.Views
             // 
             this.cmbLanguage.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbLanguage.FormattingEnabled = true;
-            this.cmbLanguage.Location = new System.Drawing.Point(250, 150);
+            this.cmbLanguage.Location = new System.Drawing.Point(250, 220);
             this.cmbLanguage.Name = "cmbLanguage";
             this.cmbLanguage.Size = new System.Drawing.Size(190, 23);
-            this.cmbLanguage.TabIndex = 7;
+            this.cmbLanguage.TabIndex = 8;
             this.cmbLanguage.SelectedIndexChanged += new System.EventHandler(this.cmbLanguage_SelectedIndexChanged);
             // 
             // lblLanguage
@@ -85,30 +121,30 @@ namespace Nlk_Cheffie_Print.Views
             this.lblLanguage.AutoSize = true;
             this.lblLanguage.Font = new System.Drawing.Font("Segoe UI", 9.5f, System.Drawing.FontStyle.Bold);
             this.lblLanguage.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(142)))), ((int)(((byte)(142)))), ((int)(((byte)(147)))));
-            this.lblLanguage.Location = new System.Drawing.Point(250, 130);
+            this.lblLanguage.Location = new System.Drawing.Point(250, 200);
             this.lblLanguage.Name = "lblLanguage";
             this.lblLanguage.Size = new System.Drawing.Size(100, 15);
-            this.lblLanguage.TabIndex = 6;
+            this.lblLanguage.TabIndex = 7;
             this.lblLanguage.Text = "Language / Dil:";
             // 
             // cmbAutoPrintRole
             // 
             this.cmbAutoPrintRole.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbAutoPrintRole.FormattingEnabled = true;
-            this.cmbAutoPrintRole.Location = new System.Drawing.Point(15, 150);
+            this.cmbAutoPrintRole.Location = new System.Drawing.Point(15, 220);
             this.cmbAutoPrintRole.Name = "cmbAutoPrintRole";
             this.cmbAutoPrintRole.Size = new System.Drawing.Size(190, 23);
-            this.cmbAutoPrintRole.TabIndex = 5;
+            this.cmbAutoPrintRole.TabIndex = 7;
             // 
             // lblAutoPrintRole
             // 
             this.lblAutoPrintRole.AutoSize = true;
             this.lblAutoPrintRole.Font = new System.Drawing.Font("Segoe UI", 9.5f, System.Drawing.FontStyle.Bold);
             this.lblAutoPrintRole.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(142)))), ((int)(((byte)(142)))), ((int)(((byte)(147)))));
-            this.lblAutoPrintRole.Location = new System.Drawing.Point(15, 130);
+            this.lblAutoPrintRole.Location = new System.Drawing.Point(15, 200);
             this.lblAutoPrintRole.Name = "lblAutoPrintRole";
             this.lblAutoPrintRole.Size = new System.Drawing.Size(105, 15);
-            this.lblAutoPrintRole.TabIndex = 4;
+            this.lblAutoPrintRole.TabIndex = 6;
             this.lblAutoPrintRole.Text = "Otomatik Fiş Tipi:";
             // 
             // chkAutoPrint
@@ -159,7 +195,7 @@ namespace Nlk_Cheffie_Print.Views
             this.pnlConnectionCard.Controls.Add(this.txtApiUrl);
             this.pnlConnectionCard.Controls.Add(this.lblServerUrl);
             this.pnlConnectionCard.Controls.Add(this.lblConnectionTitle);
-            this.pnlConnectionCard.Location = new System.Drawing.Point(20, 230);
+            this.pnlConnectionCard.Location = new System.Drawing.Point(20, 290);
             this.pnlConnectionCard.Name = "pnlConnectionCard";
             this.pnlConnectionCard.Size = new System.Drawing.Size(460, 130);
             this.pnlConnectionCard.TabIndex = 1;
@@ -210,7 +246,7 @@ namespace Nlk_Cheffie_Print.Views
             // 
             this.pnlAppCard.Controls.Add(this.btnQuit);
             this.pnlAppCard.Controls.Add(this.lblAppTitle);
-            this.pnlAppCard.Location = new System.Drawing.Point(20, 370);
+            this.pnlAppCard.Location = new System.Drawing.Point(20, 430);
             this.pnlAppCard.Name = "pnlAppCard";
             this.pnlAppCard.Size = new System.Drawing.Size(460, 90);
             this.pnlAppCard.TabIndex = 2;
@@ -244,7 +280,7 @@ namespace Nlk_Cheffie_Print.Views
             this.pnlActions.Controls.Add(this.btnCancel);
             this.pnlActions.Controls.Add(this.btnOk);
             this.pnlActions.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.pnlActions.Location = new System.Drawing.Point(0, 475);
+            this.pnlActions.Location = new System.Drawing.Point(0, 535);
             this.pnlActions.Name = "pnlActions";
             this.pnlActions.Size = new System.Drawing.Size(500, 50);
             this.pnlActions.TabIndex = 3;
@@ -275,7 +311,7 @@ namespace Nlk_Cheffie_Print.Views
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(500, 525);
+            this.ClientSize = new System.Drawing.Size(500, 585);
             this.Controls.Add(this.pnlActions);
             this.Controls.Add(this.pnlAppCard);
             this.Controls.Add(this.pnlConnectionCard);
@@ -306,6 +342,9 @@ namespace Nlk_Cheffie_Print.Views
         private Nlk_Cheffie_Print.Core.FlatCheckBox chkDryRun;
         private Nlk_Cheffie_Print.Core.FlatCheckBox chkGraphicMode;
         private Nlk_Cheffie_Print.Core.FlatCheckBox chkAutoPrint;
+        private Nlk_Cheffie_Print.Core.FlatCheckBox chkPopupNotifications;
+        private Nlk_Cheffie_Print.Core.FlatCheckBox chkOrderSound;
+        private Nlk_Cheffie_Print.Core.FlatCheckBox chkPrinterBuzzer;
         private System.Windows.Forms.Label lblAutoPrintRole;
         private Nlk_Cheffie_Print.Core.FlatComboBox cmbAutoPrintRole;
         private System.Windows.Forms.Label lblLanguage;

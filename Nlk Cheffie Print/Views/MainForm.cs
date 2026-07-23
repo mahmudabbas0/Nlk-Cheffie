@@ -117,18 +117,42 @@ namespace Nlk_Cheffie_Print.Views
             _reverbClient = null;
         }
 
-        private void OnOrderReceivedFromNetwork(JsonElement order, string role)
+        private void OnOrderReceivedFromNetwork(JsonElement order, string role, bool isInitialSync)
         {
             if (this.IsDisposed) return;
 
-            // Notify UI that log might have changed
+            // Notify UI and show notification / sound
             this.Invoke(new Action(() =>
             {
                 OrderListChanged?.Invoke();
+
+                // ONLY trigger sound alert and popup toast for LIVE new orders after initial startup sync
+                if (!isInitialSync)
+                {
+                    AudioAlertService.PlayNewOrderSound();
+
+                    if (ConfigManager.Current.App.EnablePopupNotifications)
+                    {
+                        NotificationToastForm.ShowToast(order, () =>
+                        {
+                            try
+                            {
+                                this.Show();
+                                this.WindowState = FormWindowState.Normal;
+                                this.BringToFront();
+                                if (_ordersControl != null) ShowControl(_ordersControl);
+                            }
+                            catch
+                            {
+                                // ignore UI focus errors
+                            }
+                        });
+                    }
+                }
             }));
 
-            // Auto print if enabled
-            if (ConfigManager.Current.App.AutoPrintEnabled)
+            // Auto print if enabled (suppressed for old historical orders on app startup)
+            if (!isInitialSync && ConfigManager.Current.App.AutoPrintEnabled)
             {
                 string oid = order.TryGetProperty("id", out var idProp) ? idProp.GetRawText() : Guid.NewGuid().ToString();
                 var job = new PrintJob

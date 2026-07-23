@@ -58,7 +58,11 @@
     "reset_confirm_title": "Réinitialiser la connexion",
     "reset_confirm_msg": "Êtes-vous sûr de vouloir réinitialiser la connexion du restaurant sur cet ordinateur?\n\nLes identifiants enregistrés seront supprimés.",
     "reset_success_title": "Connexion réinitialisée",
-    "reset_success_msg": "La connexion du restaurant a été réinitialisée avec succès."
+    "reset_success_msg": "Connexion au restaurant réinitialisée avec succès."
+  },
+  "notifications": {
+    "new_order_title": "Nouvelle Commande Reçue !",
+    "view": "Voir la Commande"
   },
   "printers": {
     "title": "IMPRIMANTES ET RÔLES",

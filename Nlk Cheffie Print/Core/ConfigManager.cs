@@ -29,6 +29,15 @@ namespace Nlk_Cheffie_Print.Core
         [JsonPropertyName("language")]
         public string Language { get; set; } = "tr";
 
+        [JsonPropertyName("enable_popup_notifications")]
+        public bool EnablePopupNotifications { get; set; } = true;
+
+        [JsonPropertyName("enable_order_sound")]
+        public bool EnableOrderSound { get; set; } = true;
+
+        [JsonPropertyName("enable_printer_buzzer")]
+        public bool EnablePrinterBuzzer { get; set; } = true;
+
         [JsonIgnore]
         public string DeviceToken
         {
