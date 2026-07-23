@@ -266,7 +266,9 @@
     },
     "sizes": {
       "normal": "Normal",
-      "large": "Large"
+      "medium": "Medium",
+      "large": "Large",
+      "xlarge": "Extra Large"
     },
     "thickness": {
       "normal": "Thin",
@@ -275,7 +277,14 @@
     "fonts": {
       "default": "Default",
       "arial": "Arial",
-      "mono": "Monospace"
+      "mono": "Monospace",
+      "sans": "Sans-Serif"
+    },
+    "transforms": {
+      "default": "Normal",
+      "uppercase": "UPPERCASE",
+      "lowercase": "lowercase",
+      "titlecase": "Title Case"
     },
     "vars": {
       "restaurant_name": "Restaurant name",

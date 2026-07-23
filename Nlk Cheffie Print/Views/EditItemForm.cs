@@ -10,6 +10,8 @@ namespace Nlk_Cheffie_Print.Views
     public partial class EditItemForm : Form
     {
         private TemplateElement _element;
+        private PictureBox? picLogoPreview;
+        private Label? lblLogoInfo;
 
         public EditItemForm(TemplateElement element)
         {
@@ -24,9 +26,89 @@ namespace Nlk_Cheffie_Print.Views
             
             pnlItemsSettings.BackColor = ThemeManager.ColorCard;
             
+            SetupLogoPreviewControls();
             PopulateDropdowns();
             LoadElementData();
             AdjustVisiblePanels();
+        }
+
+        private void SetupLogoPreviewControls()
+        {
+            picLogoPreview = new PictureBox
+            {
+                Location = new Point(20, 140),
+                Size = new Size(460, 180),
+                BorderStyle = BorderStyle.FixedSingle,
+                SizeMode = PictureBoxSizeMode.Zoom,
+                BackColor = Color.FromArgb(32, 32, 36),
+                Visible = false
+            };
+
+            lblLogoInfo = new Label
+            {
+                Location = new Point(20, 325),
+                AutoSize = true,
+                Font = ThemeManager.FontSmall,
+                ForeColor = ThemeManager.ColorTextMuted,
+                Visible = false
+            };
+
+            btnBrowse.FlatStyle = FlatStyle.Flat;
+            btnBrowse.BackColor = ThemeManager.ColorAccent;
+            btnBrowse.ForeColor = Color.Black;
+            btnBrowse.Font = ThemeManager.FontBodyBold;
+            btnBrowse.Cursor = Cursors.Hand;
+            btnBrowse.FlatAppearance.BorderSize = 0;
+
+            this.Controls.Add(picLogoPreview);
+            this.Controls.Add(lblLogoInfo);
+
+            txtContent.TextChanged += (s, e) =>
+            {
+                if (_element.Type == "logo")
+                    UpdateLogoPreview(txtContent.Text);
+            };
+        }
+
+        private void UpdateLogoPreview(string path)
+        {
+            if (_element.Type != "logo" || picLogoPreview == null || lblLogoInfo == null) return;
+
+            string trimmedPath = (path ?? "").Trim();
+            if (!string.IsNullOrWhiteSpace(trimmedPath) && File.Exists(trimmedPath))
+            {
+                try
+                {
+                    using (var stream = new FileStream(trimmedPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        using (var tempImg = Image.FromStream(stream))
+                        {
+                            picLogoPreview.Image?.Dispose();
+                            picLogoPreview.Image = new Bitmap(tempImg);
+                            lblLogoInfo.Text = $"✓ Logo Yüklendi: {tempImg.Width} × {tempImg.Height} px  (En/Boy Oranı Korunuyor: {((double)tempImg.Width / tempImg.Height):F2})";
+                            lblLogoInfo.ForeColor = Color.FromArgb(46, 204, 113);
+                            return;
+                        }
+                    }
+                }
+                catch
+                {
+                    // Exception reading image file
+                }
+            }
+
+            picLogoPreview.Image?.Dispose();
+            picLogoPreview.Image = null;
+            if (string.IsNullOrWhiteSpace(trimmedPath))
+            {
+                lblLogoInfo.Text = "Lütfen basılacak logo resim dosyasını (.png, .jpg) seçiniz.";
+                lblLogoInfo.ForeColor = ThemeManager.ColorTextMuted;
+            }
+            else
+            {
+                lblLogoInfo.Text = "⚠️ Dosya bulunamadı veya resim formatı geçersiz.";
+                lblLogoInfo.ForeColor = Color.FromArgb(231, 76, 60);
+            }
         }
 
         private void TranslateUI()
@@ -37,10 +119,11 @@ namespace Nlk_Cheffie_Print.Views
                 ? LocalizationService.T("designer.dialogs.path") 
                 : LocalizationService.T("designer.dialogs.content");
                 
-            lblAlign.Text = LocalizationService.T("designer.dialogs.align");
-            lblSize.Text = LocalizationService.T("designer.dialogs.size");
-            lblWeight.Text = LocalizationService.T("designer.dialogs.weight");
-            lblFamily.Text = LocalizationService.T("designer.dialogs.family");
+            lblAlign.Text = LocalizationService.T("designer.dialogs.align", "Alignment:");
+            lblSize.Text = LocalizationService.T("designer.dialogs.size", "Size:");
+            lblTransform.Text = LocalizationService.T("designer.dialogs.text_case", "Text Case:");
+            lblWeight.Text = LocalizationService.T("designer.dialogs.weight", "Thickness:");
+            lblFamily.Text = LocalizationService.T("designer.dialogs.family", "Font Family:");
             
             lblShowPrice.Text = LocalizationService.T("designer.dialogs.show_price");
             lblRightAlignPrice.Text = LocalizationService.T("designer.dialogs.right_align_price");
@@ -62,23 +145,34 @@ namespace Nlk_Cheffie_Print.Views
             cmbAlign.Items.Clear();
             cmbAlign.DisplayMember = "Value";
             cmbAlign.ValueMember = "Key";
-            cmbAlign.Items.Add(new KeyValuePair<string, string>("left", LocalizationService.T("designer.align.left")));
-            cmbAlign.Items.Add(new KeyValuePair<string, string>("center", LocalizationService.T("designer.align.center")));
-            cmbAlign.Items.Add(new KeyValuePair<string, string>("right", LocalizationService.T("designer.align.right")));
+            cmbAlign.Items.Add(new KeyValuePair<string, string>("left", LocalizationService.T("designer.align.left", "Left")));
+            cmbAlign.Items.Add(new KeyValuePair<string, string>("center", LocalizationService.T("designer.align.center", "Center")));
+            cmbAlign.Items.Add(new KeyValuePair<string, string>("right", LocalizationService.T("designer.align.right", "Right")));
 
             // Size dropdown
             cmbSize.Items.Clear();
             cmbSize.DisplayMember = "Value";
             cmbSize.ValueMember = "Key";
-            cmbSize.Items.Add(new KeyValuePair<string, string>("1x", LocalizationService.T("designer.sizes.normal")));
-            cmbSize.Items.Add(new KeyValuePair<string, string>("2x", LocalizationService.T("designer.sizes.large")));
+            cmbSize.Items.Add(new KeyValuePair<string, string>("1x", LocalizationService.T("designer.sizes.normal", "Normal")));
+            cmbSize.Items.Add(new KeyValuePair<string, string>("1.5x", LocalizationService.T("designer.sizes.medium", "Medium")));
+            cmbSize.Items.Add(new KeyValuePair<string, string>("2x", LocalizationService.T("designer.sizes.large", "Large")));
+            cmbSize.Items.Add(new KeyValuePair<string, string>("3x", LocalizationService.T("designer.sizes.xlarge", "Extra Large")));
+
+            // Text Transform / Case dropdown
+            cmbTransform.Items.Clear();
+            cmbTransform.DisplayMember = "Value";
+            cmbTransform.ValueMember = "Key";
+            cmbTransform.Items.Add(new KeyValuePair<string, string>("default", LocalizationService.T("designer.transforms.default", "Normal")));
+            cmbTransform.Items.Add(new KeyValuePair<string, string>("uppercase", LocalizationService.T("designer.transforms.uppercase", "UPPERCASE")));
+            cmbTransform.Items.Add(new KeyValuePair<string, string>("lowercase", LocalizationService.T("designer.transforms.lowercase", "lowercase")));
+            cmbTransform.Items.Add(new KeyValuePair<string, string>("titlecase", LocalizationService.T("designer.transforms.titlecase", "Title Case")));
 
             // Font Weight dropdown
             cmbFont.Items.Clear();
             cmbFont.DisplayMember = "Value";
             cmbFont.ValueMember = "Key";
-            cmbFont.Items.Add(new KeyValuePair<string, string>("A", LocalizationService.T("designer.thickness.normal")));
-            cmbFont.Items.Add(new KeyValuePair<string, string>("B", LocalizationService.T("designer.thickness.bold")));
+            cmbFont.Items.Add(new KeyValuePair<string, string>("A", LocalizationService.T("designer.thickness.normal", "Thin")));
+            cmbFont.Items.Add(new KeyValuePair<string, string>("B", LocalizationService.T("designer.thickness.bold", "Bold")));
 
             // Font Family dropdown
             cmbFamily.Items.Clear();
@@ -87,6 +181,7 @@ namespace Nlk_Cheffie_Print.Views
             cmbFamily.Items.Add(new KeyValuePair<string, string>("default", LocalizationService.T("designer.fonts.default")));
             cmbFamily.Items.Add(new KeyValuePair<string, string>("arial", LocalizationService.T("designer.fonts.arial")));
             cmbFamily.Items.Add(new KeyValuePair<string, string>("mono", LocalizationService.T("designer.fonts.mono")));
+            cmbFamily.Items.Add(new KeyValuePair<string, string>("sans", LocalizationService.T("designer.fonts.sans", "Sans-Serif")));
 
             // Yes/No dropdown helper for item settings
             PopulateYesNoCombo(cmbShowPrice);
@@ -105,12 +200,108 @@ namespace Nlk_Cheffie_Print.Views
             combo.Items.Add(new KeyValuePair<bool, string>(false, LocalizationService.T("designer.no")));
         }
 
+        private static string ToFriendlyDisplay(string content)
+        {
+            if (string.IsNullOrEmpty(content)) return "";
+
+            string text = content;
+
+            // 1. First replace UI label tokens ({L_...})
+            var labelReplacements = new Dictionary<string, string>
+            {
+                { "{L_customer_info}", LocalizationService.T("receipt.customer_info", "Müşteri Bilgileri") },
+                { "{L_customer_name}", LocalizationService.T("designer.vars.customer_name", "Müşteri Adı") },
+                { "{L_customer_phone}", LocalizationService.T("designer.vars.customer_phone", "Müşteri Tel") },
+                { "{L_delivery_address}", LocalizationService.T("designer.vars.delivery_address", "Teslimat Adresi") },
+                { "{L_adres}", LocalizationService.T("orders.detail.address", "Adres") },
+                { "{L_tel}", LocalizationService.T("orders.detail.phone", "Tel") },
+                { "{L_masa}", LocalizationService.T("orders.detail.table", "Masa") },
+                { "{L_siparis_no}", LocalizationService.T("orders.detail.order_no", "Sipariş No") },
+                { "{L_tarih}", LocalizationService.T("orders.columns.date", "Tarih") },
+                { "{L_saat}", LocalizationService.T("designer.vars.time", "Saat") },
+                { "{L_ara_toplam}", LocalizationService.T("designer.vars.subtotal", "Ara Toplam") },
+                { "{L_ekstra_toplam}", LocalizationService.T("designer.vars.extra_total", "Ekstra Toplam") },
+                { "{L_kdv}", LocalizationService.T("designer.vars.tax_total", "KDV") },
+                { "{L_total}", LocalizationService.T("designer.vars.grand_total", "Genel Toplam") },
+                { "{L_afiyet_olsun}", LocalizationService.T("receipt.enjoy", "Afiyet Olsun!") }
+            };
+
+            foreach (var kvp in labelReplacements)
+            {
+                text = text.Replace(kvp.Key, kvp.Value);
+            }
+
+            // 2. Replace Dynamic Data Variables with localized bracketed text
+            var varReplacements = new Dictionary<string, string>
+            {
+                { "{restoran_adi}", "{" + LocalizationService.T("designer.vars.restaurant_name", "Restoran Adı") + "}" },
+                { "{restoran_name}", "{" + LocalizationService.T("designer.vars.restaurant_name", "Restoran Adı") + "}" },
+                { "{restaurant_name}", "{" + LocalizationService.T("designer.vars.restaurant_name", "Restoran Adı") + "}" },
+
+                { "{restoran_adres}", "{" + LocalizationService.T("designer.vars.restaurant_address", "Restoran Adresi") + "}" },
+                { "{restoran_address}", "{" + LocalizationService.T("designer.vars.restaurant_address", "Restoran Adresi") + "}" },
+                { "{restaurant_address}", "{" + LocalizationService.T("designer.vars.restaurant_address", "Restoran Adresi") + "}" },
+
+                { "{restoran_telefon}", "{" + LocalizationService.T("designer.vars.restaurant_phone", "Restoran Tel") + "}" },
+                { "{restoran_phone}", "{" + LocalizationService.T("designer.vars.restaurant_phone", "Restoran Tel") + "}" },
+                { "{restaurant_phone}", "{" + LocalizationService.T("designer.vars.restaurant_phone", "Restoran Tel") + "}" },
+
+                { "{order_no}", "{" + LocalizationService.T("designer.vars.order_no", "Sipariş No") + "}" },
+                { "{order_number}", "{" + LocalizationService.T("designer.vars.order_no", "Sipariş No") + "}" },
+                { "{siparis_no}", "{" + LocalizationService.T("designer.vars.order_no", "Sipariş No") + "}" },
+
+                { "{table_name}", "{" + LocalizationService.T("designer.vars.table_name", "Masa Adı") + "}" },
+                { "{masa_adi}", "{" + LocalizationService.T("designer.vars.table_name", "Masa Adı") + "}" },
+
+                { "{date}", "{" + LocalizationService.T("designer.vars.date", "Tarih") + "}" },
+                { "{tarih}", "{" + LocalizationService.T("designer.vars.date", "Tarih") + "}" },
+
+                { "{time}", "{" + LocalizationService.T("designer.vars.time", "Saat") + "}" },
+                { "{saat}", "{" + LocalizationService.T("designer.vars.time", "Saat") + "}" },
+
+                { "{customer_name}", "{" + LocalizationService.T("designer.vars.customer_name", "Müşteri Adı") + "}" },
+                { "{musteri_adi}", "{" + LocalizationService.T("designer.vars.customer_name", "Müşteri Adı") + "}" },
+
+                { "{customer_phone}", "{" + LocalizationService.T("designer.vars.customer_phone", "Müşteri Tel") + "}" },
+                { "{musteri_telefon}", "{" + LocalizationService.T("designer.vars.customer_phone", "Müşteri Tel") + "}" },
+
+                { "{delivery_address}", "{" + LocalizationService.T("designer.vars.delivery_address", "Teslimat Adresi") + "}" },
+                { "{teslimat_adresi}", "{" + LocalizationService.T("designer.vars.delivery_address", "Teslimat Adresi") + "}" },
+
+                { "{payment_type}", "{" + LocalizationService.T("designer.vars.payment_type", "Ödeme Tipi") + "}" },
+                { "{odeme_tipi}", "{" + LocalizationService.T("designer.vars.payment_type", "Ödeme Tipi") + "}" },
+
+                { "{note}", "{" + LocalizationService.T("designer.vars.note", "Sipariş Notu") + "}" },
+                { "{ek_not}", "{" + LocalizationService.T("designer.vars.note", "Sipariş Notu") + "}" },
+
+                { "{subtotal}", "{" + LocalizationService.T("designer.vars.subtotal", "Ara Toplam") + "}" },
+                { "{ara_toplam}", "{" + LocalizationService.T("designer.vars.subtotal", "Ara Toplam") + "}" },
+
+                { "{tax_total}", "{" + LocalizationService.T("designer.vars.tax_total", "KDV Toplamı") + "}" },
+                { "{kdv_toplam}", "{" + LocalizationService.T("designer.vars.tax_total", "KDV Toplamı") + "}" },
+
+                { "{grand_total}", "{" + LocalizationService.T("designer.vars.grand_total", "Genel Toplam") + "}" },
+                { "{toplam_tutar}", "{" + LocalizationService.T("designer.vars.grand_total", "Genel Toplam") + "}" },
+
+                { "{ekstra_toplam}", "{" + LocalizationService.T("designer.vars.extra_total", "Ekstra Toplam") + "}" },
+                { "{extra_total}", "{" + LocalizationService.T("designer.vars.extra_total", "Ekstra Toplam") + "}" }
+            };
+
+            foreach (var kvp in varReplacements)
+            {
+                text = text.Replace(kvp.Key, kvp.Value);
+            }
+
+            return text;
+        }
+
         private void LoadElementData()
         {
-            txtContent.Text = _element.Type == "logo" ? _element.Path : _element.Content;
+            txtContent.Text = _element.Type == "logo" ? _element.Path : ToFriendlyDisplay(_element.Content);
             
             SelectComboValue(cmbAlign, _element.Align);
             SelectComboValue(cmbSize, _element.Size);
+            SelectComboValue(cmbTransform, _element.TextCase);
             SelectComboValue(cmbFont, _element.Font);
             SelectComboValue(cmbFamily, _element.Family);
 
@@ -169,9 +360,12 @@ namespace Nlk_Cheffie_Print.Views
             lblAlign.Visible = (t != "separator");
             cmbAlign.Visible = lblAlign.Visible;
 
-            lblSize.Visible = (t == "text");
+            lblSize.Visible = (t == "text" || t == "logo" || t == "qrcode" || t == "barcode");
             cmbSize.Visible = lblSize.Visible;
             
+            lblTransform.Visible = (t == "text");
+            cmbTransform.Visible = lblTransform.Visible;
+
             lblWeight.Visible = (t == "text");
             cmbFont.Visible = lblWeight.Visible;
 
@@ -182,6 +376,22 @@ namespace Nlk_Cheffie_Print.Views
             
             lblTokensTitle.Visible = (t == "text");
             flpTokens.Visible = (t == "text");
+
+            if (t == "logo")
+            {
+                lblContent.Text = LocalizationService.T("designer.labels.logo_path", "Logo Dosya Yolu:");
+                lblSize.Text = LocalizationService.T("designer.labels.logo_size", "Logo Boyutu:");
+                if (picLogoPreview != null) picLogoPreview.Visible = true;
+                if (lblLogoInfo != null) lblLogoInfo.Visible = true;
+                UpdateLogoPreview(txtContent.Text);
+            }
+            else
+            {
+                lblContent.Text = LocalizationService.T("designer.labels.content", "İçerik:");
+                lblSize.Text = LocalizationService.T("designer.labels.size", "Boyut:");
+                if (picLogoPreview != null) picLogoPreview.Visible = false;
+                if (lblLogoInfo != null) lblLogoInfo.Visible = false;
+            }
 
             if (t == "text")
             {
@@ -195,21 +405,21 @@ namespace Nlk_Cheffie_Print.Views
 
             var tokenDefs = new List<KeyValuePair<string, string>>
             {
-                new KeyValuePair<string, string>("{restoran_adi}", "Restoran"),
-                new KeyValuePair<string, string>("{restoran_adres}", "Adres"),
-                new KeyValuePair<string, string>("{restoran_telefon}", "Telefon"),
-                new KeyValuePair<string, string>("{order_no}", "Sipariş No"),
-                new KeyValuePair<string, string>("{table_name}", "Masa/Paket"),
-                new KeyValuePair<string, string>("{date}", "Tarih"),
-                new KeyValuePair<string, string>("{time}", "Saat"),
-                new KeyValuePair<string, string>("{customer_name}", "Müşteri"),
-                new KeyValuePair<string, string>("{customer_phone}", "Müşteri Tel"),
-                new KeyValuePair<string, string>("{delivery_address}", "Teslimat"),
-                new KeyValuePair<string, string>("{payment_type}", "Ödeme"),
-                new KeyValuePair<string, string>("{note}", "Not"),
-                new KeyValuePair<string, string>("{subtotal}", "Ara Toplam"),
-                new KeyValuePair<string, string>("{tax_total}", "KDV"),
-                new KeyValuePair<string, string>("{grand_total}", "Toplam")
+                new KeyValuePair<string, string>("{restoran_adi}", LocalizationService.T("designer.vars.restaurant_name", "Restoran Adı")),
+                new KeyValuePair<string, string>("{restoran_adres}", LocalizationService.T("designer.vars.restaurant_address", "Restoran Adresi")),
+                new KeyValuePair<string, string>("{restoran_telefon}", LocalizationService.T("designer.vars.restaurant_phone", "Restoran Tel")),
+                new KeyValuePair<string, string>("{order_no}", LocalizationService.T("designer.vars.order_no", "Sipariş No")),
+                new KeyValuePair<string, string>("{table_name}", LocalizationService.T("designer.vars.table_name", "Masa Adı")),
+                new KeyValuePair<string, string>("{date}", LocalizationService.T("designer.vars.date", "Tarih")),
+                new KeyValuePair<string, string>("{time}", LocalizationService.T("designer.vars.time", "Saat")),
+                new KeyValuePair<string, string>("{customer_name}", LocalizationService.T("designer.vars.customer_name", "Müşteri Adı")),
+                new KeyValuePair<string, string>("{customer_phone}", LocalizationService.T("designer.vars.customer_phone", "Müşteri Tel")),
+                new KeyValuePair<string, string>("{delivery_address}", LocalizationService.T("designer.vars.delivery_address", "Teslimat Adresi")),
+                new KeyValuePair<string, string>("{payment_type}", LocalizationService.T("designer.vars.payment_type", "Ödeme Tipi")),
+                new KeyValuePair<string, string>("{note}", LocalizationService.T("designer.vars.note", "Sipariş Notu")),
+                new KeyValuePair<string, string>("{subtotal}", LocalizationService.T("designer.vars.subtotal", "Ara Toplam")),
+                new KeyValuePair<string, string>("{tax_total}", LocalizationService.T("designer.vars.tax_total", "KDV Toplamı")),
+                new KeyValuePair<string, string>("{grand_total}", LocalizationService.T("designer.vars.grand_total", "Genel Toplam"))
             };
 
             foreach (var tok in tokenDefs)
@@ -217,7 +427,7 @@ namespace Nlk_Cheffie_Print.Views
                 Button btn = new Button
                 {
                     Text = tok.Value,
-                    Width = 80,
+                    Width = 104,
                     Height = 26,
                     FlatStyle = FlatStyle.Flat,
                     BackColor = ThemeManager.ColorFieldBg,
@@ -256,6 +466,7 @@ namespace Nlk_Cheffie_Print.Views
                 if (ofd.ShowDialog() == DialogResult.OK)
                 {
                     txtContent.Text = ofd.FileName;
+                    UpdateLogoPreview(ofd.FileName);
                 }
             }
         }
@@ -277,6 +488,9 @@ namespace Nlk_Cheffie_Print.Views
 
             if (cmbSize.SelectedItem != null)
                 _element.Size = ((KeyValuePair<string, string>)cmbSize.SelectedItem).Key;
+
+            if (cmbTransform.SelectedItem != null)
+                _element.TextCase = ((KeyValuePair<string, string>)cmbTransform.SelectedItem).Key;
 
             if (cmbFont.SelectedItem != null)
                 _element.Font = ((KeyValuePair<string, string>)cmbFont.SelectedItem).Key;

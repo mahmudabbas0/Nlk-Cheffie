@@ -277,6 +277,12 @@
       "arial": "Arial",
       "mono": "Monospace"
     },
+    "transforms": {
+      "default": "Normal",
+      "uppercase": "GROSSBUCHSTABEN",
+      "lowercase": "kleinbuchstaben",
+      "titlecase": "Wortanfang Groß"
+    },
     "vars": {
       "restaurant_name": "Restaurantname",
       "restaurant_address": "Restaurantadresse",

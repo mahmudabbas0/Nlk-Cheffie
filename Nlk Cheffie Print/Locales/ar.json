@@ -277,6 +277,12 @@
       "arial": "Arial",
       "mono": "Monospace"
     },
+    "transforms": {
+      "default": "عادي",
+      "uppercase": "أحرف كبيرة",
+      "lowercase": "أحرف صغيرة",
+      "titlecase": "الحرف الأول كبير"
+    },
     "vars": {
       "restaurant_name": "اسم المطعم",
       "restaurant_address": "عنوان المطعم",

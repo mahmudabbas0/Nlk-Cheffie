@@ -34,6 +34,8 @@ namespace Nlk_Cheffie_Print.Views
             this.cmbAlign = new Nlk_Cheffie_Print.Core.FlatComboBox();
             this.lblSize = new System.Windows.Forms.Label();
             this.cmbSize = new Nlk_Cheffie_Print.Core.FlatComboBox();
+            this.lblTransform = new System.Windows.Forms.Label();
+            this.cmbTransform = new Nlk_Cheffie_Print.Core.FlatComboBox();
             this.lblWeight = new System.Windows.Forms.Label();
             this.cmbFont = new Nlk_Cheffie_Print.Core.FlatComboBox();
             this.lblFamily = new System.Windows.Forms.Label();
@@ -76,7 +78,7 @@ namespace Nlk_Cheffie_Print.Views
             // 
             this.txtContent.Location = new System.Drawing.Point(20, 40);
             this.txtContent.Name = "txtContent";
-            this.txtContent.Size = new System.Drawing.Size(320, 23);
+            this.txtContent.Size = new System.Drawing.Size(410, 23);
             this.txtContent.TabIndex = 1;
             // 
             // lblAlign
@@ -96,7 +98,7 @@ namespace Nlk_Cheffie_Print.Views
             this.cmbAlign.FormattingEnabled = true;
             this.cmbAlign.Location = new System.Drawing.Point(20, 100);
             this.cmbAlign.Name = "cmbAlign";
-            this.cmbAlign.Size = new System.Drawing.Size(140, 23);
+            this.cmbAlign.Size = new System.Drawing.Size(165, 23);
             this.cmbAlign.TabIndex = 3;
             // 
             // lblSize
@@ -104,7 +106,7 @@ namespace Nlk_Cheffie_Print.Views
             this.lblSize.AutoSize = true;
             this.lblSize.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.lblSize.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(152)))), ((int)(((byte)(0)))));
-            this.lblSize.Location = new System.Drawing.Point(180, 80);
+            this.lblSize.Location = new System.Drawing.Point(205, 80);
             this.lblSize.Name = "lblSize";
             this.lblSize.Size = new System.Drawing.Size(48, 15);
             this.lblSize.TabIndex = 4;
@@ -114,10 +116,30 @@ namespace Nlk_Cheffie_Print.Views
             // 
             this.cmbSize.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbSize.FormattingEnabled = true;
-            this.cmbSize.Location = new System.Drawing.Point(180, 100);
+            this.cmbSize.Location = new System.Drawing.Point(205, 100);
             this.cmbSize.Name = "cmbSize";
-            this.cmbSize.Size = new System.Drawing.Size(140, 23);
+            this.cmbSize.Size = new System.Drawing.Size(165, 23);
             this.cmbSize.TabIndex = 5;
+            // 
+            // lblTransform
+            // 
+            this.lblTransform.AutoSize = true;
+            this.lblTransform.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblTransform.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(152)))), ((int)(((byte)(0)))));
+            this.lblTransform.Location = new System.Drawing.Point(390, 80);
+            this.lblTransform.Name = "lblTransform";
+            this.lblTransform.Size = new System.Drawing.Size(95, 15);
+            this.lblTransform.TabIndex = 14;
+            this.lblTransform.Text = "Harf Dönüşümü:";
+            // 
+            // cmbTransform
+            // 
+            this.cmbTransform.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbTransform.FormattingEnabled = true;
+            this.cmbTransform.Location = new System.Drawing.Point(390, 100);
+            this.cmbTransform.Name = "cmbTransform";
+            this.cmbTransform.Size = new System.Drawing.Size(170, 23);
+            this.cmbTransform.TabIndex = 15;
             // 
             // lblWeight
             // 
@@ -136,7 +158,7 @@ namespace Nlk_Cheffie_Print.Views
             this.cmbFont.FormattingEnabled = true;
             this.cmbFont.Location = new System.Drawing.Point(20, 160);
             this.cmbFont.Name = "cmbFont";
-            this.cmbFont.Size = new System.Drawing.Size(140, 23);
+            this.cmbFont.Size = new System.Drawing.Size(260, 23);
             this.cmbFont.TabIndex = 7;
             // 
             // lblFamily
@@ -144,7 +166,7 @@ namespace Nlk_Cheffie_Print.Views
             this.lblFamily.AutoSize = true;
             this.lblFamily.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.lblFamily.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(152)))), ((int)(((byte)(0)))));
-            this.lblFamily.Location = new System.Drawing.Point(180, 140);
+            this.lblFamily.Location = new System.Drawing.Point(300, 140);
             this.lblFamily.Name = "lblFamily";
             this.lblFamily.Size = new System.Drawing.Size(73, 15);
             this.lblFamily.TabIndex = 8;
@@ -154,9 +176,9 @@ namespace Nlk_Cheffie_Print.Views
             // 
             this.cmbFamily.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbFamily.FormattingEnabled = true;
-            this.cmbFamily.Location = new System.Drawing.Point(180, 160);
+            this.cmbFamily.Location = new System.Drawing.Point(300, 160);
             this.cmbFamily.Name = "cmbFamily";
-            this.cmbFamily.Size = new System.Drawing.Size(140, 23);
+            this.cmbFamily.Size = new System.Drawing.Size(260, 23);
             this.cmbFamily.TabIndex = 9;
             // 
             // pnlItemsSettings
@@ -175,16 +197,16 @@ namespace Nlk_Cheffie_Print.Views
             this.pnlItemsSettings.Controls.Add(this.lblShowPrice);
             this.pnlItemsSettings.Location = new System.Drawing.Point(20, 200);
             this.pnlItemsSettings.Name = "pnlItemsSettings";
-            this.pnlItemsSettings.Size = new System.Drawing.Size(460, 185);
+            this.pnlItemsSettings.Size = new System.Drawing.Size(540, 185);
             this.pnlItemsSettings.TabIndex = 10;
             // 
             // cmbShowTax
             // 
             this.cmbShowTax.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbShowTax.FormattingEnabled = true;
-            this.cmbShowTax.Location = new System.Drawing.Point(310, 140);
+            this.cmbShowTax.Location = new System.Drawing.Point(360, 140);
             this.cmbShowTax.Name = "cmbShowTax";
-            this.cmbShowTax.Size = new System.Drawing.Size(130, 23);
+            this.cmbShowTax.Size = new System.Drawing.Size(150, 23);
             this.cmbShowTax.TabIndex = 11;
             // 
             // lblShowTax
@@ -192,7 +214,7 @@ namespace Nlk_Cheffie_Print.Views
             this.lblShowTax.AutoSize = true;
             this.lblShowTax.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.lblShowTax.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(152)))), ((int)(((byte)(0)))));
-            this.lblShowTax.Location = new System.Drawing.Point(310, 120);
+            this.lblShowTax.Location = new System.Drawing.Point(360, 120);
             this.lblShowTax.Name = "lblShowTax";
             this.lblShowTax.Size = new System.Drawing.Size(68, 15);
             this.lblShowTax.TabIndex = 10;
@@ -202,9 +224,9 @@ namespace Nlk_Cheffie_Print.Views
             // 
             this.cmbShowNotes.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbShowNotes.FormattingEnabled = true;
-            this.cmbShowNotes.Location = new System.Drawing.Point(160, 140);
+            this.cmbShowNotes.Location = new System.Drawing.Point(185, 140);
             this.cmbShowNotes.Name = "cmbShowNotes";
-            this.cmbShowNotes.Size = new System.Drawing.Size(130, 23);
+            this.cmbShowNotes.Size = new System.Drawing.Size(150, 23);
             this.cmbShowNotes.TabIndex = 9;
             // 
             // lblShowNotes
@@ -212,7 +234,7 @@ namespace Nlk_Cheffie_Print.Views
             this.lblShowNotes.AutoSize = true;
             this.lblShowNotes.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.lblShowNotes.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(152)))), ((int)(((byte)(0)))));
-            this.lblShowNotes.Location = new System.Drawing.Point(160, 120);
+            this.lblShowNotes.Location = new System.Drawing.Point(185, 120);
             this.lblShowNotes.Name = "lblShowNotes";
             this.lblShowNotes.Size = new System.Drawing.Size(123, 15);
             this.lblShowNotes.TabIndex = 8;
@@ -224,7 +246,7 @@ namespace Nlk_Cheffie_Print.Views
             this.cmbShowDetails.FormattingEnabled = true;
             this.cmbShowDetails.Location = new System.Drawing.Point(10, 140);
             this.cmbShowDetails.Name = "cmbShowDetails";
-            this.cmbShowDetails.Size = new System.Drawing.Size(130, 23);
+            this.cmbShowDetails.Size = new System.Drawing.Size(150, 23);
             this.cmbShowDetails.TabIndex = 7;
             // 
             // lblShowDetails
@@ -240,9 +262,9 @@ namespace Nlk_Cheffie_Print.Views
             // 
             // txtCurrencySymbol
             // 
-            this.txtCurrencySymbol.Location = new System.Drawing.Point(310, 80);
+            this.txtCurrencySymbol.Location = new System.Drawing.Point(360, 80);
             this.txtCurrencySymbol.Name = "txtCurrencySymbol";
-            this.txtCurrencySymbol.Size = new System.Drawing.Size(130, 23);
+            this.txtCurrencySymbol.Size = new System.Drawing.Size(150, 23);
             this.txtCurrencySymbol.TabIndex = 5;
             // 
             // lblCurrencySymbol
@@ -250,7 +272,7 @@ namespace Nlk_Cheffie_Print.Views
             this.lblCurrencySymbol.AutoSize = true;
             this.lblCurrencySymbol.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.lblCurrencySymbol.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(152)))), ((int)(((byte)(0)))));
-            this.lblCurrencySymbol.Location = new System.Drawing.Point(310, 60);
+            this.lblCurrencySymbol.Location = new System.Drawing.Point(360, 60);
             this.lblCurrencySymbol.Name = "lblCurrencySymbol";
             this.lblCurrencySymbol.Size = new System.Drawing.Size(117, 15);
             this.lblCurrencySymbol.TabIndex = 4;
@@ -260,9 +282,9 @@ namespace Nlk_Cheffie_Print.Views
             // 
             this.cmbRightAlignPrice.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbRightAlignPrice.FormattingEnabled = true;
-            this.cmbRightAlignPrice.Location = new System.Drawing.Point(160, 80);
+            this.cmbRightAlignPrice.Location = new System.Drawing.Point(185, 80);
             this.cmbRightAlignPrice.Name = "cmbRightAlignPrice";
-            this.cmbRightAlignPrice.Size = new System.Drawing.Size(130, 23);
+            this.cmbRightAlignPrice.Size = new System.Drawing.Size(150, 23);
             this.cmbRightAlignPrice.TabIndex = 3;
             // 
             // lblRightAlignPrice
@@ -270,7 +292,7 @@ namespace Nlk_Cheffie_Print.Views
             this.lblRightAlignPrice.AutoSize = true;
             this.lblRightAlignPrice.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.lblRightAlignPrice.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(152)))), ((int)(((byte)(0)))));
-            this.lblRightAlignPrice.Location = new System.Drawing.Point(160, 60);
+            this.lblRightAlignPrice.Location = new System.Drawing.Point(185, 60);
             this.lblRightAlignPrice.Name = "lblRightAlignPrice";
             this.lblRightAlignPrice.Size = new System.Drawing.Size(114, 15);
             this.lblRightAlignPrice.TabIndex = 2;
@@ -282,7 +304,7 @@ namespace Nlk_Cheffie_Print.Views
             this.cmbShowPrice.FormattingEnabled = true;
             this.cmbShowPrice.Location = new System.Drawing.Point(10, 80);
             this.cmbShowPrice.Name = "cmbShowPrice";
-            this.cmbShowPrice.Size = new System.Drawing.Size(130, 23);
+            this.cmbShowPrice.Size = new System.Drawing.Size(150, 23);
             this.cmbShowPrice.TabIndex = 1;
             // 
             // lblShowPrice
@@ -298,9 +320,9 @@ namespace Nlk_Cheffie_Print.Views
             // 
             // btnBrowse
             // 
-            this.btnBrowse.Location = new System.Drawing.Point(350, 40);
+            this.btnBrowse.Location = new System.Drawing.Point(440, 39);
             this.btnBrowse.Name = "btnBrowse";
-            this.btnBrowse.Size = new System.Drawing.Size(110, 24);
+            this.btnBrowse.Size = new System.Drawing.Size(120, 26);
             this.btnBrowse.TabIndex = 11;
             this.btnBrowse.Tag = "Secondary";
             this.btnBrowse.Text = " Dosya Seç";
@@ -309,9 +331,9 @@ namespace Nlk_Cheffie_Print.Views
             // 
             // flpTokens
             // 
-            this.flpTokens.Location = new System.Drawing.Point(20, 220);
+            this.flpTokens.Location = new System.Drawing.Point(20, 225);
             this.flpTokens.Name = "flpTokens";
-            this.flpTokens.Size = new System.Drawing.Size(460, 160);
+            this.flpTokens.Size = new System.Drawing.Size(540, 175);
             this.flpTokens.TabIndex = 12;
             // 
             // lblTokensTitle
@@ -319,7 +341,7 @@ namespace Nlk_Cheffie_Print.Views
             this.lblTokensTitle.AutoSize = true;
             this.lblTokensTitle.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.lblTokensTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(152)))), ((int)(((byte)(0)))));
-            this.lblTokensTitle.Location = new System.Drawing.Point(20, 200);
+            this.lblTokensTitle.Location = new System.Drawing.Point(20, 205);
             this.lblTokensTitle.Name = "lblTokensTitle";
             this.lblTokensTitle.Size = new System.Drawing.Size(89, 15);
             this.lblTokensTitle.TabIndex = 13;
@@ -330,17 +352,17 @@ namespace Nlk_Cheffie_Print.Views
             this.pnlActions.Controls.Add(this.btnCancel);
             this.pnlActions.Controls.Add(this.btnSave);
             this.pnlActions.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.pnlActions.Location = new System.Drawing.Point(0, 405);
+            this.pnlActions.Location = new System.Drawing.Point(0, 425);
             this.pnlActions.Name = "pnlActions";
-            this.pnlActions.Size = new System.Drawing.Size(500, 60);
+            this.pnlActions.Size = new System.Drawing.Size(580, 60);
             this.pnlActions.TabIndex = 14;
             // 
             // btnCancel
             // 
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.btnCancel.Location = new System.Drawing.Point(270, 13);
+            this.btnCancel.Location = new System.Drawing.Point(345, 14);
             this.btnCancel.Name = "btnCancel";
-            this.btnCancel.Size = new System.Drawing.Size(100, 32);
+            this.btnCancel.Size = new System.Drawing.Size(105, 34);
             this.btnCancel.TabIndex = 1;
             this.btnCancel.Tag = "Secondary";
             this.btnCancel.Text = "İptal";
@@ -348,9 +370,9 @@ namespace Nlk_Cheffie_Print.Views
             // 
             // btnSave
             // 
-            this.btnSave.Location = new System.Drawing.Point(385, 13);
+            this.btnSave.Location = new System.Drawing.Point(460, 14);
             this.btnSave.Name = "btnSave";
-            this.btnSave.Size = new System.Drawing.Size(100, 32);
+            this.btnSave.Size = new System.Drawing.Size(105, 34);
             this.btnSave.TabIndex = 0;
             this.btnSave.Tag = "Primary";
             this.btnSave.Text = "Kaydet";
@@ -361,7 +383,9 @@ namespace Nlk_Cheffie_Print.Views
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(500, 465);
+            this.ClientSize = new System.Drawing.Size(580, 485);
+            this.Controls.Add(this.cmbTransform);
+            this.Controls.Add(this.lblTransform);
             this.Controls.Add(this.pnlActions);
             this.Controls.Add(this.lblTokensTitle);
             this.Controls.Add(this.flpTokens);
@@ -401,6 +425,8 @@ namespace Nlk_Cheffie_Print.Views
         private Nlk_Cheffie_Print.Core.FlatComboBox cmbAlign;
         private System.Windows.Forms.Label lblSize;
         private Nlk_Cheffie_Print.Core.FlatComboBox cmbSize;
+        private System.Windows.Forms.Label lblTransform;
+        private Nlk_Cheffie_Print.Core.FlatComboBox cmbTransform;
         private System.Windows.Forms.Label lblWeight;
         private Nlk_Cheffie_Print.Core.FlatComboBox cmbFont;
         private System.Windows.Forms.Label lblFamily;

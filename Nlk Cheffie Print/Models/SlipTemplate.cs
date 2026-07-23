@@ -24,6 +24,9 @@ namespace Nlk_Cheffie_Print.Models
         [JsonPropertyName("family")]
         public string Family { get; set; } = "default"; // default, arial, mono
 
+        [JsonPropertyName("text_case")]
+        public string TextCase { get; set; } = "default"; // default, uppercase, lowercase, titlecase
+
         [JsonPropertyName("path")]
         public string Path { get; set; } = ""; // logo path
 

@@ -64,8 +64,8 @@ namespace Nlk_Cheffie_Print.Core.Printer
                 }
                 else if (el.Type == "text")
                 {
-                    string text = Substitute(el.Content, ctx);
-                    WriteTextEscPos(writer, text + "\n", el.Align, el.Font, el.Size);
+                    string text = ApplyTextTransform(Substitute(el.Content, ctx), el.TextCase);
+                    WriteTextEscPos(writer, text + "\n", el.Align ?? "left", el.Font ?? "A", el.Size ?? "1x");
                 }
                 else if (el.Type == "items")
                 {
@@ -74,12 +74,12 @@ namespace Nlk_Cheffie_Print.Core.Printer
                 else if (el.Type == "qrcode")
                 {
                     string content = Substitute(el.Content, ctx);
-                    WriteQrEscPos(writer, content);
+                    WriteQrEscPos(writer, content, el.Align ?? "center");
                 }
                 else if (el.Type == "barcode")
                 {
                     string content = Substitute(el.Content, ctx);
-                    WriteTextEscPos(writer, $"[BARCODE: {content}]\n", "center", "A", "1x");
+                    WriteTextEscPos(writer, $"[BARCODE: {content}]\n", el.Align ?? "center", "A", "1x");
                 }
                 else if (el.Type == "logo")
                 {
@@ -90,20 +90,30 @@ namespace Nlk_Cheffie_Print.Core.Printer
                         {
                             using (var img = Image.FromFile(path))
                             {
-                                // Resize logo: 160px is optimal width for thermal printer (fits within 384/576 dots)
-                                int w = Math.Min(img.Width, 160);
-                                int h = (int)(img.Height * ((double)w / img.Width));
+                                int maxW = 160;
+                                string sz = (el.Size ?? "").ToLowerInvariant();
+                                if (sz == "1.5x" || sz == "medium" || sz == "orta") maxW = 220;
+                                else if (sz == "2x" || sz == "large" || sz == "buyuk" || sz == "büyük") maxW = 280;
+                                else if (sz == "3x" || sz == "xlarge" || sz == "cok_buyuk" || sz == "çok büyük") maxW = 340;
+
+                                int w = Math.Min(img.Width, maxW);
+                                double aspect = (double)img.Width / img.Height;
+                                int h = (int)(w / aspect);
                                 
                                 using (var bmp = new Bitmap(w, h))
                                 {
                                     using (var g = Graphics.FromImage(bmp))
                                     {
                                         g.Clear(Color.White);
+                                        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                                        g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                                        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
                                         g.DrawImage(img, 0, 0, w, h);
                                     }
                                     
-                                    // Align center for the logo image
-                                    writer.Write(new byte[] { 0x1B, 0x61, 1 });
+                                    // Align for the logo image
+                                    byte alignByte = (el.Align ?? "").ToLower() == "left" ? (byte)0 : ((el.Align ?? "").ToLower() == "right" ? (byte)2 : (byte)1);
+                                    writer.Write(new byte[] { 0x1B, 0x61, alignByte });
                                     
                                     // Render bitmap to ESC/POS raster graphic bytes without page initialization/cutting
                                     byte[] logoBytes = RenderBitmapToEscPosBytes(bmp);
@@ -116,12 +126,12 @@ namespace Nlk_Cheffie_Print.Core.Printer
                         }
                         catch
                         {
-                            WriteTextEscPos(writer, "[LOGO]\n", "center", "A", "1x");
+                            WriteTextEscPos(writer, "[LOGO]\n", el.Align ?? "center", "A", "1x");
                         }
                     }
                     else
                     {
-                        WriteTextEscPos(writer, "[LOGO]\n", "center", "A", "1x");
+                        WriteTextEscPos(writer, "[LOGO]\n", el.Align ?? "center", "A", "1x");
                     }
                 }
             }
@@ -155,8 +165,14 @@ namespace Nlk_Cheffie_Print.Core.Printer
             byte fontByte = font.ToUpper() == "B" ? (byte)1 : (byte)0;
             writer.Write(new byte[] { 0x1B, 0x45, fontByte });
 
-            // Size (Normal/Large)
-            byte sizeByte = size == "2x" ? (byte)0x11 : (byte)0x00; // Double height & width
+            // Size (Normal/Medium/Large/Extra Large)
+            byte sizeByte = size switch
+            {
+                "1.5x" => 0x01, // double height
+                "2x" => 0x11,   // double width & height
+                "3x" => 0x22,   // triple width & height
+                _ => 0x00
+            };
             writer.Write(new byte[] { 0x1D, 0x21, sizeByte });
 
             // Encode using the configured encoding (default is ibm857)
@@ -291,6 +307,40 @@ namespace Nlk_Cheffie_Print.Core.Printer
             }
         }
 
+        private static Font GetFontForElement(TemplateElement el)
+        {
+            string familyName = "Courier New";
+            string fam = (el.Family ?? "").ToLowerInvariant();
+            if (fam == "arial") familyName = "Arial";
+            else if (fam == "mono" || fam == "monospace") familyName = "Consolas";
+            else if (fam == "sans" || fam == "sans-serif" || fam == "segoe") familyName = "Segoe UI";
+
+            float sizePt = 10f;
+            string sz = (el.Size ?? "").ToLowerInvariant();
+            if (sz == "1.5x" || sz == "medium" || sz == "orta") sizePt = 12f;
+            else if (sz == "2x" || sz == "large" || sz == "buyuk" || sz == "büyük") sizePt = 14f;
+            else if (sz == "3x" || sz == "xlarge" || sz == "cok_buyuk" || sz == "çok büyük") sizePt = 18f;
+
+            FontStyle style = (el.Font == "B" || (el.Font ?? "").ToLowerInvariant() == "bold") ? FontStyle.Bold : FontStyle.Regular;
+
+            try
+            {
+                return new Font(familyName, sizePt, style);
+            }
+            catch
+            {
+                return new Font("Courier New", sizePt, style);
+            }
+        }
+
+        private static int GetAlignedX(string align, int itemWidth, int margin, int usableWidth)
+        {
+            string a = (align ?? "").ToLowerInvariant();
+            if (a == "left") return margin;
+            if (a == "right") return Math.Max(margin, margin + usableWidth - itemWidth);
+            return Math.Max(margin, margin + (usableWidth - itemWidth) / 2); // default center
+        }
+
         private static int MeasureSection(List<TemplateElement> section, Dictionary<string, string> ctx, Graphics g, int yOffset, int usableWidth, Font fnNormal, Font fnBold, Font fnHeader, JsonElement data)
         {
             var optimized = OptimizeSection(section, ctx);
@@ -306,7 +356,35 @@ namespace Nlk_Cheffie_Print.Core.Printer
             if (el.Type == "separator") return yOffset + 12;
             if (el.Type == "qrcode") return yOffset + 110;
             if (el.Type == "barcode") return yOffset + 50;
-            if (el.Type == "logo") return yOffset + 60;
+            if (el.Type == "logo")
+            {
+                string path = el.Path;
+                if (!string.IsNullOrEmpty(path) && File.Exists(path))
+                {
+                    try
+                    {
+                        using (var img = Image.FromFile(path))
+                        {
+                            int maxW = 120;
+                            string sz = (el.Size ?? "").ToLowerInvariant();
+                            if (sz == "1.5x" || sz == "medium" || sz == "orta") maxW = 160;
+                            else if (sz == "2x" || sz == "large" || sz == "buyuk" || sz == "büyük") maxW = 200;
+                            else if (sz == "3x" || sz == "xlarge" || sz == "cok_buyuk" || sz == "çok büyük") maxW = 260;
+
+                            int w = Math.Min(img.Width, maxW);
+                            w = Math.Min(w, usableWidth);
+                            double aspect = (double)img.Width / img.Height;
+                            int h = (int)(w / aspect);
+                            return yOffset + h + 10;
+                        }
+                    }
+                    catch
+                    {
+                        return yOffset + 50;
+                    }
+                }
+                return yOffset + 50;
+            }
             if (el.Type == "items")
             {
                 JsonElement itemsProp = default;
@@ -333,12 +411,12 @@ namespace Nlk_Cheffie_Print.Core.Printer
             }
 
             // Normal text
-            string raw = Substitute(el.Content, ctx);
-            Font fn = el.Font == "B" ? fnBold : fnNormal;
-            if (el.Size == "2x") fn = fnHeader;
-
-            SizeF size = g.MeasureString(raw, fn, usableWidth);
-            return yOffset + (int)size.Height + 4;
+            string raw = ApplyTextTransform(Substitute(el.Content, ctx), el.TextCase);
+            using (Font fn = GetFontForElement(el))
+            {
+                SizeF size = g.MeasureString(raw, fn, usableWidth);
+                return yOffset + (int)size.Height + 4;
+            }
         }
 
         private static int DrawSection(List<TemplateElement> section, Dictionary<string, string> ctx, Graphics g, int yOffset, int usableWidth, int margin, Font fnNormal, Font fnBold, Font fnHeader, Brush brush, JsonElement data)
@@ -372,7 +450,7 @@ namespace Nlk_Cheffie_Print.Core.Printer
                     {
                         using (Bitmap qrBmp = qrCode.GetGraphic(3))
                         {
-                            int x = margin + (usableWidth - qrBmp.Width) / 2;
+                            int x = GetAlignedX(el.Align, qrBmp.Width, margin, usableWidth);
                             g.DrawImage(qrBmp, x, yOffset);
                             return yOffset + qrBmp.Height + 10;
                         }
@@ -380,7 +458,8 @@ namespace Nlk_Cheffie_Print.Core.Printer
                 }
                 catch
                 {
-                    g.DrawRectangle(Pens.Black, margin + (usableWidth - 80) / 2, yOffset, 80, 80);
+                    int x = GetAlignedX(el.Align, 80, margin, usableWidth);
+                    g.DrawRectangle(Pens.Black, x, yOffset, 80, 80);
                     return yOffset + 90;
                 }
             }
@@ -388,8 +467,10 @@ namespace Nlk_Cheffie_Print.Core.Printer
             if (el.Type == "barcode")
             {
                 string content = Substitute(el.Content, ctx);
-                g.DrawRectangle(Pens.Black, margin + (usableWidth - 140) / 2, yOffset, 140, 30);
-                g.DrawString(content, fnNormal, brush, margin + (usableWidth - 140) / 2 + 10, yOffset + 32);
+                int bw = 140;
+                int x = GetAlignedX(el.Align, bw, margin, usableWidth);
+                g.DrawRectangle(Pens.Black, x, yOffset, bw, 30);
+                g.DrawString(content, fnNormal, brush, x + 10, yOffset + 32);
                 return yOffset + 50;
             }
 
@@ -402,10 +483,33 @@ namespace Nlk_Cheffie_Print.Core.Printer
                     {
                         using (var img = Image.FromFile(path))
                         {
-                            int w = Math.Min(img.Width, 120);
-                            int h = (int)(img.Height * ((double)w / img.Width));
-                            int x = margin + (usableWidth - w) / 2;
+                            int maxW = 120;
+                            string sz = (el.Size ?? "").ToLowerInvariant();
+                            if (sz == "1.5x" || sz == "medium" || sz == "orta") maxW = 160;
+                            else if (sz == "2x" || sz == "large" || sz == "buyuk" || sz == "büyük") maxW = 200;
+                            else if (sz == "3x" || sz == "xlarge" || sz == "cok_buyuk" || sz == "çok büyük") maxW = 260;
+
+                            int w = Math.Min(img.Width, maxW);
+                            w = Math.Min(w, usableWidth);
+                            double aspect = (double)img.Width / img.Height;
+                            int h = (int)(w / aspect);
+
+                            int x = GetAlignedX(el.Align, w, margin, usableWidth);
+
+                            var oldInterpolation = g.InterpolationMode;
+                            var oldPixelOffset = g.PixelOffsetMode;
+                            var oldSmoothing = g.SmoothingMode;
+
+                            g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                            g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+
                             g.DrawImage(img, x, yOffset, w, h);
+
+                            g.InterpolationMode = oldInterpolation;
+                            g.PixelOffsetMode = oldPixelOffset;
+                            g.SmoothingMode = oldSmoothing;
+
                             return yOffset + h + 10;
                         }
                     }
@@ -414,8 +518,9 @@ namespace Nlk_Cheffie_Print.Core.Printer
                         // ignore error and render fallback box
                     }
                 }
-                g.DrawRectangle(Pens.Gray, margin + (usableWidth - 100) / 2, yOffset, 100, 40);
-                g.DrawString("[LOGO]", fnNormal, Brushes.Gray, margin + (usableWidth - 100) / 2 + 25, yOffset + 12);
+                int fallbackX = GetAlignedX(el.Align, 100, margin, usableWidth);
+                g.DrawRectangle(Pens.Gray, fallbackX, yOffset, 100, 40);
+                g.DrawString("[LOGO]", fnNormal, Brushes.Gray, fallbackX + 25, yOffset + 12);
                 return yOffset + 50;
             }
 
@@ -501,18 +606,18 @@ namespace Nlk_Cheffie_Print.Core.Printer
             }
 
             // Normal text
-            string raw = Substitute(el.Content, ctx);
-            Font fn = el.Font == "B" ? fnBold : fnNormal;
-            if (el.Size == "2x") fn = fnHeader;
+            string raw = ApplyTextTransform(Substitute(el.Content, ctx), el.TextCase);
+            using (Font fn = GetFontForElement(el))
+            {
+                SizeF size = g.MeasureString(raw, fn, usableWidth);
+                float drawX = margin;
+                if (el.Align == "center") drawX = margin + (usableWidth - size.Width) / 2;
+                else if (el.Align == "right") drawX = margin + usableWidth - size.Width;
 
-            SizeF size = g.MeasureString(raw, fn, usableWidth);
-            float drawX = margin;
-            if (el.Align == "center") drawX = margin + (usableWidth - size.Width) / 2;
-            else if (el.Align == "right") drawX = margin + usableWidth - size.Width;
+                g.DrawString(raw, fn, brush, new RectangleF(drawX, yOffset, usableWidth, size.Height + 5));
 
-            g.DrawString(raw, fn, brush, new RectangleF(drawX, yOffset, usableWidth, size.Height + 5));
-
-            return yOffset + (int)size.Height + 4;
+                return yOffset + (int)size.Height + 4;
+            }
         }
 
         private static bool ShouldSkipElement(TemplateElement el, Dictionary<string, string> ctx)
@@ -522,8 +627,8 @@ namespace Nlk_Cheffie_Print.Core.Printer
             // Check if it's the customer info header
             if (el.Content.Contains("L_customer_info") || el.Content.Contains("customer_info"))
             {
-                bool hasName = ctx.TryGetValue("musteri_adi", out string name) && !string.IsNullOrWhiteSpace(name);
-                bool hasPhone = ctx.TryGetValue("musteri_telefon", out string phone) && !string.IsNullOrWhiteSpace(phone);
+                bool hasName = ctx.TryGetValue("musteri_adi", out string? name) && !string.IsNullOrWhiteSpace(name);
+                bool hasPhone = ctx.TryGetValue("musteri_telefon", out string? phone) && !string.IsNullOrWhiteSpace(phone);
                 if (!hasName && !hasPhone) return true;
             }
 
@@ -546,7 +651,7 @@ namespace Nlk_Cheffie_Print.Core.Printer
                 if (!key.StartsWith("L_"))
                 {
                     string val = "";
-                    if (ctx.TryGetValue(key, out string v))
+                    if (ctx.TryGetValue(key, out string? v))
                     {
                         val = v ?? "";
                     }
@@ -555,7 +660,7 @@ namespace Nlk_Cheffie_Print.Core.Printer
                 else
                 {
                     string val = "";
-                    if (ctx.TryGetValue(key, out string v))
+                    if (ctx.TryGetValue(key, out string? v))
                     {
                         val = v ?? "";
                     }
@@ -739,7 +844,73 @@ namespace Nlk_Cheffie_Print.Core.Printer
             ctx["L_customer_name"] = LocalizationService.T("designer.vars.customer_name", "Müşteri Adı");
             ctx["L_customer_phone"] = LocalizationService.T("designer.vars.customer_phone", "Müşteri Telefonu");
             ctx["L_delivery_address"] = LocalizationService.T("designer.vars.delivery_address", "Teslimat Adresi");
- 
+
+            // Synonyms for friendly token keys in user-customized templates
+            ctx["date"] = dateStr;
+            ctx["tarih"] = dateStr;
+            ctx["time"] = timeStr;
+            ctx["saat"] = timeStr;
+
+            ctx["order_no"] = ctx["siparis_no"];
+            ctx["order_number"] = ctx["siparis_no"];
+            ctx["table_name"] = ctx["masa_adi"];
+
+            ctx["customer_name"] = ctx["musteri_adi"];
+            ctx["customer_phone"] = ctx["musteri_telefon"];
+            ctx["delivery_address"] = ctx["teslimat_adresi"];
+            ctx["payment_type"] = ctx["odeme_tipi"];
+            ctx["note"] = ctx["ek_not"];
+
+            ctx["subtotal"] = ctx["ara_toplam"];
+            ctx["tax_total"] = ctx["kdv_toplam"];
+            ctx["grand_total"] = ctx["toplam_tutar"];
+            ctx["extra_total"] = ctx["ekstra_toplam"];
+
+            ctx["restoran_name"] = ctx["restoran_adi"];
+            ctx["restaurant_name"] = ctx["restoran_adi"];
+            ctx["restaurant_address"] = ctx["restoran_adres"];
+            ctx["restaurant_phone"] = ctx["restoran_telefon"];
+
+            ctx["Restoran Adı"] = ctx["restoran_adi"];
+            ctx["Restaurant Name"] = ctx["restoran_adi"];
+            ctx["Restoran"] = ctx["restoran_adi"];
+            ctx["Restoran Adresi"] = ctx["restoran_adres"];
+            ctx["Restaurant Address"] = ctx["restoran_adres"];
+            ctx["Restoran Tel"] = ctx["restoran_telefon"];
+            ctx["Restoran Telefonu"] = ctx["restoran_telefon"];
+            ctx["Restaurant Phone"] = ctx["restoran_telefon"];
+
+            ctx["Sipariş No"] = ctx["siparis_no"];
+            ctx["Order No"] = ctx["siparis_no"];
+            ctx["Masa Adı"] = ctx["masa_adi"];
+            ctx["Table Name"] = ctx["masa_adi"];
+            ctx["Tarih"] = ctx["tarih"];
+            ctx["Date"] = ctx["tarih"];
+            ctx["Saat"] = ctx["saat"];
+            ctx["Time"] = ctx["saat"];
+
+            ctx["Müşteri Adı"] = ctx["musteri_adi"];
+            ctx["Customer Name"] = ctx["musteri_adi"];
+            ctx["Müşteri Tel"] = ctx["musteri_telefon"];
+            ctx["Customer Phone"] = ctx["musteri_telefon"];
+            ctx["Teslimat Adresi"] = ctx["teslimat_adresi"];
+            ctx["Delivery Address"] = ctx["teslimat_adresi"];
+
+            ctx["Ödeme Tipi"] = ctx["odeme_tipi"];
+            ctx["Payment Type"] = ctx["odeme_tipi"];
+            ctx["Sipariş Notu"] = ctx["ek_not"];
+            ctx["Order Note"] = ctx["ek_not"];
+
+            ctx["Ara Toplam"] = ctx["ara_toplam"];
+            ctx["Subtotal"] = ctx["ara_toplam"];
+            ctx["KDV Toplamı"] = ctx["kdv_toplam"];
+            ctx["Tax Total"] = ctx["kdv_toplam"];
+            ctx["Tax Amount"] = ctx["kdv_toplam"];
+            ctx["Genel Toplam"] = ctx["toplam_tutar"];
+            ctx["Grand Total"] = ctx["toplam_tutar"];
+            ctx["Ekstra Toplam"] = ctx["ekstra_toplam"];
+            ctx["Extra Total"] = ctx["ekstra_toplam"];
+
             return ctx;
         }
 
@@ -772,9 +943,33 @@ namespace Nlk_Cheffie_Print.Core.Printer
             }
             return output;
         }
-        private static void WriteQrEscPos(BinaryWriter writer, string content)
+
+        public static string ApplyTextTransform(string text, string textCase)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            string tc = (textCase ?? "").ToLowerInvariant();
+            if (tc == "default" || string.IsNullOrEmpty(tc)) return text;
+
+            var culture = System.Globalization.CultureInfo.CurrentCulture;
+            return tc switch
+            {
+                "uppercase" => text.ToUpper(culture),
+                "lowercase" => text.ToLower(culture),
+                "titlecase" => culture.TextInfo.ToTitleCase(text.ToLower(culture)),
+                _ => text
+            };
+        }
+        private static void WriteQrEscPos(BinaryWriter writer, string content, string align = "center")
         {
             if (string.IsNullOrEmpty(content)) return;
+
+            byte alignByte = (align ?? "").ToLower() switch
+            {
+                "left" => 0,
+                "right" => 2,
+                _ => 1
+            };
+            writer.Write(new byte[] { 0x1B, 0x61, alignByte });
 
             byte[] dataBytes = Encoding.UTF8.GetBytes(content);
             int len = dataBytes.Length + 3;
@@ -799,6 +994,9 @@ namespace Nlk_Cheffie_Print.Core.Printer
 
             // 6. Line feed to prevent overlapping with next text
             writer.Write(new byte[] { 0x0A });
+
+            // Reset alignment to Left
+            writer.Write(new byte[] { 0x1B, 0x61, 0 });
         }
 
         private static List<string> ParseItemExtras(JsonElement item, JsonElement slip, int itemIndex, int itemCount, double orderSubtotal)

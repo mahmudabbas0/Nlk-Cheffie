@@ -277,6 +277,12 @@
       "arial": "Arial",
       "mono": "Monospace"
     },
+    "transforms": {
+      "default": "Normal",
+      "uppercase": "MAJUSCULES",
+      "lowercase": "minuscules",
+      "titlecase": "Première Lettre Majuscule"
+    },
     "vars": {
       "restaurant_name": "Nom du restaurant",
       "restaurant_address": "Adresse du restaurant",

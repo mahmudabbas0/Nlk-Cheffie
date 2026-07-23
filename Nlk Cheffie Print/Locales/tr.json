@@ -266,7 +266,9 @@
     },
     "sizes": {
       "normal": "Normal",
-      "large": "Büyük"
+      "medium": "Orta",
+      "large": "Büyük",
+      "xlarge": "Çok Büyük"
     },
     "thickness": {
       "normal": "İnce",
@@ -275,7 +277,14 @@
     "fonts": {
       "default": "Varsayılan",
       "arial": "Arial",
-      "mono": "Monospace"
+      "mono": "Monospace",
+      "sans": "Sans-Serif"
+    },
+    "transforms": {
+      "default": "Normal",
+      "uppercase": "TÜMÜ BÜYÜK",
+      "lowercase": "tümü küçük",
+      "titlecase": "Baş Harfleri Büyük"
     },
     "vars": {
       "restaurant_name": "Restoran adı",
