@@ -489,18 +489,17 @@ namespace Nlk_Cheffie_Print.Views.Controls
                 if (!string.IsNullOrEmpty(path))
                 {
                     string resolvedPath = ResolveLogoPath(path);
-                    if (File.Exists(resolvedPath))
+                    var img = ReceiptRenderer.GetOptimizedLogo(resolvedPath);
+                    if (img != null)
                     {
                         try
                         {
-                            using (var img = Image.FromFile(resolvedPath))
-                            {
-                                int w = Math.Min(img.Width, 120);
-                                int h = (int)(img.Height * ((double)w / img.Width));
-                                int xImg = (paperWidth - w) / 2;
-                                g.DrawImage(img, xImg, yOffset, w, h);
-                                return yOffset + h + 12;
-                            }
+                            var (w, h) = ReceiptRenderer.GetLogoDimensions(img, el.Size, usableWidth);
+                            int xImg = (paperWidth - w) / 2;
+                            if ((el.Align ?? "").ToLower() == "left") xImg = margin;
+                            else if ((el.Align ?? "").ToLower() == "right") xImg = paperWidth - margin - w;
+                            g.DrawImage(img, xImg, yOffset, w, h);
+                            return yOffset + h + 12;
                         }
                         catch
                         {

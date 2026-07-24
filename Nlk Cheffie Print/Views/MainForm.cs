@@ -38,6 +38,63 @@ namespace Nlk_Cheffie_Print.Views
             LocalizationService.LanguageChanged += TranslateUI;
             this.DoubleBuffered = true;
             InitializeTrayIcon();
+            SetupSettingsButtonVectorIcon();
+        }
+
+        private void SetupSettingsButtonVectorIcon()
+        {
+            btnSettings.Paint += (s, pe) =>
+            {
+                var g = pe.Graphics;
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                
+                Color bg = pnlTopBar.BackColor;
+                g.Clear(bg);
+
+                var btn = (Button)s!;
+                Point ptMouse = btn.PointToClient(Cursor.Position);
+                bool isHover = btn.ClientRectangle.Contains(ptMouse);
+
+                Color gearColor = isHover ? ThemeManager.ColorAccent : Color.FromArgb(175, 175, 180);
+                int cx = btn.Width / 2;
+                int cy = btn.Height / 2;
+                int outerR = 8;
+                int innerR = 6;
+                int toothR = 10;
+                int centerR = 3;
+
+                using (var brush = new SolidBrush(gearColor))
+                {
+                    // Draw 8 teeth
+                    for (int i = 0; i < 8; i++)
+                    {
+                        double angle = i * Math.PI / 4;
+                        double cos = Math.Cos(angle);
+                        double sin = Math.Sin(angle);
+
+                        PointF[] toothPts = new PointF[]
+                        {
+                            new PointF((float)(cx + (innerR - 0.5) * cos - 2.2 * sin), (float)(cy + (innerR - 0.5) * sin + 2.2 * cos)),
+                            new PointF((float)(cx + toothR * cos - 1.5 * sin), (float)(cy + toothR * sin + 1.5 * cos)),
+                            new PointF((float)(cx + toothR * cos + 1.5 * sin), (float)(cy + toothR * sin - 1.5 * cos)),
+                            new PointF((float)(cx + (innerR - 0.5) * cos + 2.2 * sin), (float)(cy + (innerR - 0.5) * sin - 2.2 * cos))
+                        };
+                        g.FillPolygon(brush, toothPts);
+                    }
+
+                    // Draw outer circle
+                    g.FillEllipse(brush, cx - outerR, cy - outerR, outerR * 2, outerR * 2);
+                }
+
+                // Draw center hole
+                using (var holeBrush = new SolidBrush(bg))
+                {
+                    g.FillEllipse(holeBrush, cx - centerR, cy - centerR, centerR * 2, centerR * 2);
+                }
+            };
+
+            btnSettings.MouseEnter += (s, e) => btnSettings.Invalidate();
+            btnSettings.MouseLeave += (s, e) => btnSettings.Invalidate();
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -564,6 +621,16 @@ namespace Nlk_Cheffie_Print.Views
 
         private void ShowMainForm()
         {
+            if (string.IsNullOrEmpty(ConfigManager.Current?.App?.DeviceToken))
+            {
+                if (!ShowLoginDialog())
+                {
+                    _isExiting = true;
+                    Application.Exit();
+                }
+                return;
+            }
+
             this.Show();
             this.WindowState = FormWindowState.Normal;
             this.BringToFront();

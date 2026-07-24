@@ -49,33 +49,68 @@ namespace Nlk_Cheffie_Print.Views
             pnlTokenWrapper.BackColor = ThemeManager.ColorFieldBg;
             txtToken.BackColor = ThemeManager.ColorFieldBg;
             
-            lblStatus.BackColor = Color.FromArgb(30, ThemeManager.ColorDanger);
-            lblStatus.ForeColor = ThemeManager.ColorDanger;
+            lblStatus.BackColor = Color.FromArgb(35, 239, 68, 68);
+            lblStatus.ForeColor = Color.FromArgb(239, 68, 68);
             
-            // Draw custom card border
+            // Draw clean card border
             pnlCard.Paint += (s, ev) =>
             {
                 var g = ev.Graphics;
                 var rect = pnlCard.ClientRectangle;
-                using (var pen = new Pen(ThemeManager.ColorBorder, 1))
+                using (var pen = new Pen(Color.FromArgb(45, 45, 50), 1))
                 {
                     g.DrawRectangle(pen, 0, 0, rect.Width - 1, rect.Height - 1);
                 }
             };
 
-            // Custom border glow for token field
+            // Clean border for token field
             txtToken.Enter += (s, ev) => { _isTokenFocused = true; pnlTokenWrapper.Invalidate(); };
             txtToken.Leave += (s, ev) => { _isTokenFocused = false; pnlTokenWrapper.Invalidate(); };
             pnlTokenWrapper.Paint += (s, ev) =>
             {
                 var g = ev.Graphics;
                 var rect = pnlTokenWrapper.ClientRectangle;
-                Color borderCol = _isTokenFocused ? ThemeManager.ColorAccent : ThemeManager.ColorBorder;
-                using (var pen = new Pen(borderCol, 1.5f))
+                Color borderCol = _isTokenFocused ? Color.FromArgb(255, 152, 0) : Color.FromArgb(55, 55, 60);
+                using (var pen = new Pen(borderCol, 1f))
                 {
                     g.DrawRectangle(pen, 0, 0, rect.Width - 1, rect.Height - 1);
                 }
             };
+
+            // Vector eye icon for btnTogglePassword
+            btnTogglePassword.Text = "";
+            btnTogglePassword.Paint += (s, pe) =>
+            {
+                var g = pe.Graphics;
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                g.Clear(ThemeManager.ColorFieldBg);
+
+                var btn = (Button)s!;
+                Point ptMouse = btn.PointToClient(Cursor.Position);
+                bool isHover = btn.ClientRectangle.Contains(ptMouse);
+                Color iconColor = isHover ? Color.FromArgb(255, 152, 0) : Color.FromArgb(140, 140, 145);
+
+                int cx = btn.Width / 2;
+                int cy = btn.Height / 2;
+
+                using (var pen = new Pen(iconColor, 1.8f))
+                using (var brush = new SolidBrush(iconColor))
+                {
+                    g.DrawArc(pen, cx - 10, cy - 7, 20, 14, 200, 140);
+                    g.DrawArc(pen, cx - 10, cy - 7, 20, 14, 20, 140);
+                    g.FillEllipse(brush, cx - 3, cy - 3, 6, 6);
+
+                    if (_isPasswordHidden)
+                    {
+                        using (var slashPen = new Pen(Color.FromArgb(239, 68, 68), 2f))
+                        {
+                            g.DrawLine(slashPen, cx - 8, cy + 6, cx + 8, cy - 6);
+                        }
+                    }
+                }
+            };
+            btnTogglePassword.MouseEnter += (s, e) => btnTogglePassword.Invalidate();
+            btnTogglePassword.MouseLeave += (s, e) => btnTogglePassword.Invalidate();
 
             // Center the card panel on the form
             pnlCard.Location = new Point(
@@ -105,16 +140,8 @@ namespace Nlk_Cheffie_Print.Views
         private void btnTogglePassword_Click(object sender, EventArgs e)
         {
             _isPasswordHidden = !_isPasswordHidden;
-            if (_isPasswordHidden)
-            {
-                txtToken.PasswordChar = '●';
-                btnTogglePassword.Text = "👁";
-            }
-            else
-            {
-                txtToken.PasswordChar = '\0';
-                btnTogglePassword.Text = "🔒";
-            }
+            txtToken.PasswordChar = _isPasswordHidden ? '●' : '\0';
+            btnTogglePassword.Invalidate();
         }
 
         private void btnBrowserLogin_Click(object sender, EventArgs e)

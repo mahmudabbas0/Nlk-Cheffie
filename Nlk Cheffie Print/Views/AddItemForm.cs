@@ -100,10 +100,29 @@ namespace Nlk_Cheffie_Print.Views
 
         private void SelectVariable(string varCode)
         {
+            string content = varCode switch
+            {
+                "{restoran_adres}" => "{L_adres}: {restoran_adres}",
+                "{restoran_telefon}" => "{L_tel}: {restoran_telefon}",
+                "{masa_no}" => "{L_masa}: {masa_no}",
+                "{masa_adi}" => "{L_masa}: {masa_adi}",
+                "{siparis_no}" => "{L_siparis_no}: #{siparis_no}",
+                "{tarih}" => "{L_tarih}: {tarih}",
+                "{saat}" => "{L_saat}: {saat}",
+                "{ara_toplam}" => "{L_ara_toplam}: {ara_toplam} TL",
+                "{ekstra_toplam}" => "{L_ekstra_toplam}: {ekstra_toplam} TL",
+                "{kdv_toplam}" => "{L_kdv}: {kdv_toplam} TL",
+                "{toplam_tutar}" => "{L_total}: {toplam_tutar} TL",
+                "{musteri_adi}" => "{L_customer_name}: {musteri_adi}",
+                "{musteri_telefon}" => "{L_customer_phone}: {musteri_telefon}",
+                "{teslimat_adresi}" => "{L_delivery_address}: {teslimat_adresi}",
+                _ => varCode
+            };
+
             CreatedElement = new TemplateElement
             {
                 Type = "text",
-                Content = varCode,
+                Content = content,
                 Align = "left",
                 Font = "A",
                 Size = "1x"

@@ -54,6 +54,7 @@ namespace Nlk_Cheffie_Print.Views
             this.cmbShowPrice = new Nlk_Cheffie_Print.Core.FlatComboBox();
             this.lblShowPrice = new System.Windows.Forms.Label();
             this.btnBrowse = new System.Windows.Forms.Button();
+            this.btnRemoveLogo = new System.Windows.Forms.Button();
             this.flpTokens = new System.Windows.Forms.FlowLayoutPanel();
             this.lblTokensTitle = new System.Windows.Forms.Label();
             this.pnlActions = new System.Windows.Forms.Panel();
@@ -72,13 +73,12 @@ namespace Nlk_Cheffie_Print.Views
             this.lblContent.Name = "lblContent";
             this.lblContent.Size = new System.Drawing.Size(43, 15);
             this.lblContent.TabIndex = 0;
-            this.lblContent.Text = "İçerik:";
-            // 
+            this.lblContent.Text = "İçerik:";            // 
             // txtContent
             // 
             this.txtContent.Location = new System.Drawing.Point(20, 40);
             this.txtContent.Name = "txtContent";
-            this.txtContent.Size = new System.Drawing.Size(410, 23);
+            this.txtContent.Size = new System.Drawing.Size(365, 23);
             this.txtContent.TabIndex = 1;
             // 
             // lblAlign
@@ -98,7 +98,7 @@ namespace Nlk_Cheffie_Print.Views
             this.cmbAlign.FormattingEnabled = true;
             this.cmbAlign.Location = new System.Drawing.Point(20, 100);
             this.cmbAlign.Name = "cmbAlign";
-            this.cmbAlign.Size = new System.Drawing.Size(165, 23);
+            this.cmbAlign.Size = new System.Drawing.Size(170, 23);
             this.cmbAlign.TabIndex = 3;
             // 
             // lblSize
@@ -106,7 +106,7 @@ namespace Nlk_Cheffie_Print.Views
             this.lblSize.AutoSize = true;
             this.lblSize.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.lblSize.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(152)))), ((int)(((byte)(0)))));
-            this.lblSize.Location = new System.Drawing.Point(205, 80);
+            this.lblSize.Location = new System.Drawing.Point(210, 80);
             this.lblSize.Name = "lblSize";
             this.lblSize.Size = new System.Drawing.Size(48, 15);
             this.lblSize.TabIndex = 4;
@@ -116,9 +116,9 @@ namespace Nlk_Cheffie_Print.Views
             // 
             this.cmbSize.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbSize.FormattingEnabled = true;
-            this.cmbSize.Location = new System.Drawing.Point(205, 100);
+            this.cmbSize.Location = new System.Drawing.Point(210, 100);
             this.cmbSize.Name = "cmbSize";
-            this.cmbSize.Size = new System.Drawing.Size(165, 23);
+            this.cmbSize.Size = new System.Drawing.Size(170, 23);
             this.cmbSize.TabIndex = 5;
             // 
             // lblTransform
@@ -320,20 +320,31 @@ namespace Nlk_Cheffie_Print.Views
             // 
             // btnBrowse
             // 
-            this.btnBrowse.Location = new System.Drawing.Point(440, 39);
+            this.btnBrowse.Location = new System.Drawing.Point(395, 39);
             this.btnBrowse.Name = "btnBrowse";
-            this.btnBrowse.Size = new System.Drawing.Size(120, 26);
+            this.btnBrowse.Size = new System.Drawing.Size(100, 26);
             this.btnBrowse.TabIndex = 11;
             this.btnBrowse.Tag = "Secondary";
             this.btnBrowse.Text = " Dosya Seç";
             this.btnBrowse.UseVisualStyleBackColor = true;
             this.btnBrowse.Click += new System.EventHandler(this.btnBrowse_Click);
             // 
+            // btnRemoveLogo
+            // 
+            this.btnRemoveLogo.Location = new System.Drawing.Point(500, 39);
+            this.btnRemoveLogo.Name = "btnRemoveLogo";
+            this.btnRemoveLogo.Size = new System.Drawing.Size(100, 26);
+            this.btnRemoveLogo.TabIndex = 16;
+            this.btnRemoveLogo.Tag = "Danger";
+            this.btnRemoveLogo.Text = " Görseli Kaldır";
+            this.btnRemoveLogo.UseVisualStyleBackColor = true;
+            this.btnRemoveLogo.Click += new System.EventHandler(this.btnRemoveLogo_Click);
+            // 
             // flpTokens
             // 
             this.flpTokens.Location = new System.Drawing.Point(20, 225);
             this.flpTokens.Name = "flpTokens";
-            this.flpTokens.Size = new System.Drawing.Size(540, 175);
+            this.flpTokens.Size = new System.Drawing.Size(580, 175);
             this.flpTokens.TabIndex = 12;
             // 
             // lblTokensTitle
@@ -352,15 +363,15 @@ namespace Nlk_Cheffie_Print.Views
             this.pnlActions.Controls.Add(this.btnCancel);
             this.pnlActions.Controls.Add(this.btnSave);
             this.pnlActions.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.pnlActions.Location = new System.Drawing.Point(0, 425);
+            this.pnlActions.Location = new System.Drawing.Point(0, 500);
             this.pnlActions.Name = "pnlActions";
-            this.pnlActions.Size = new System.Drawing.Size(580, 60);
+            this.pnlActions.Size = new System.Drawing.Size(620, 60);
             this.pnlActions.TabIndex = 14;
             // 
             // btnCancel
             // 
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.btnCancel.Location = new System.Drawing.Point(345, 14);
+            this.btnCancel.Location = new System.Drawing.Point(385, 14);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(105, 34);
             this.btnCancel.TabIndex = 1;
@@ -370,7 +381,7 @@ namespace Nlk_Cheffie_Print.Views
             // 
             // btnSave
             // 
-            this.btnSave.Location = new System.Drawing.Point(460, 14);
+            this.btnSave.Location = new System.Drawing.Point(500, 14);
             this.btnSave.Name = "btnSave";
             this.btnSave.Size = new System.Drawing.Size(105, 34);
             this.btnSave.TabIndex = 0;
@@ -383,12 +394,13 @@ namespace Nlk_Cheffie_Print.Views
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(580, 485);
+            this.ClientSize = new System.Drawing.Size(620, 560);
             this.Controls.Add(this.cmbTransform);
             this.Controls.Add(this.lblTransform);
             this.Controls.Add(this.pnlActions);
             this.Controls.Add(this.lblTokensTitle);
             this.Controls.Add(this.flpTokens);
+            this.Controls.Add(this.btnRemoveLogo);
             this.Controls.Add(this.btnBrowse);
             this.Controls.Add(this.pnlItemsSettings);
             this.Controls.Add(this.cmbFamily);
@@ -445,6 +457,7 @@ namespace Nlk_Cheffie_Print.Views
         private System.Windows.Forms.Label lblShowTax;
         private Nlk_Cheffie_Print.Core.FlatComboBox cmbShowTax;
         private System.Windows.Forms.Button btnBrowse;
+        private System.Windows.Forms.Button btnRemoveLogo;
         private System.Windows.Forms.FlowLayoutPanel flpTokens;
         private System.Windows.Forms.Label lblTokensTitle;
         private System.Windows.Forms.Panel pnlActions;

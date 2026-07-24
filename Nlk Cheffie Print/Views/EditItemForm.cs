@@ -36,8 +36,8 @@ namespace Nlk_Cheffie_Print.Views
         {
             picLogoPreview = new PictureBox
             {
-                Location = new Point(20, 140),
-                Size = new Size(460, 180),
+                Location = new Point(20, 160),
+                Size = new Size(580, 290),
                 BorderStyle = BorderStyle.FixedSingle,
                 SizeMode = PictureBoxSizeMode.Zoom,
                 BackColor = Color.FromArgb(32, 32, 36),
@@ -46,8 +46,8 @@ namespace Nlk_Cheffie_Print.Views
 
             lblLogoInfo = new Label
             {
-                Location = new Point(20, 325),
-                AutoSize = true,
+                Location = new Point(20, 460),
+                Size = new Size(580, 24),
                 Font = ThemeManager.FontSmall,
                 ForeColor = ThemeManager.ColorTextMuted,
                 Visible = false
@@ -59,6 +59,17 @@ namespace Nlk_Cheffie_Print.Views
             btnBrowse.Font = ThemeManager.FontBodyBold;
             btnBrowse.Cursor = Cursors.Hand;
             btnBrowse.FlatAppearance.BorderSize = 0;
+            btnBrowse.FlatAppearance.MouseOverBackColor = ThemeManager.ColorAccentHover;
+            btnBrowse.FlatAppearance.MouseDownBackColor = ThemeManager.ColorAccentPressed;
+
+            btnRemoveLogo.FlatStyle = FlatStyle.Flat;
+            btnRemoveLogo.BackColor = ThemeManager.ColorDanger;
+            btnRemoveLogo.ForeColor = Color.White;
+            btnRemoveLogo.Font = ThemeManager.FontBodyBold;
+            btnRemoveLogo.Cursor = Cursors.Hand;
+            btnRemoveLogo.FlatAppearance.BorderSize = 0;
+            btnRemoveLogo.FlatAppearance.MouseOverBackColor = Color.FromArgb(248, 113, 113);
+            btnRemoveLogo.FlatAppearance.MouseDownBackColor = Color.FromArgb(220, 38, 38);
 
             this.Controls.Add(picLogoPreview);
             this.Controls.Add(lblLogoInfo);
@@ -79,13 +90,31 @@ namespace Nlk_Cheffie_Print.Views
             {
                 try
                 {
+                    var fileInfo = new FileInfo(trimmedPath);
+                    long maxSizeBytes = 2 * 1024 * 1024; // 2MB
+                    if (fileInfo.Length > maxSizeBytes)
+                    {
+                        picLogoPreview.Image?.Dispose();
+                        picLogoPreview.Image = null;
+                        double sizeMb = (double)fileInfo.Length / (1024 * 1024);
+                        string errFormat = LocalizationService.T("designer.labels.logo_size_error", "⚠️ Dosya boyutu 2MB sınırını aşıyor ({size:F1} MB). Lütfen daha küçük bir resim seçiniz.");
+                        lblLogoInfo.Text = errFormat.Replace("{size:F1}", sizeMb.ToString("F1"));
+                        lblLogoInfo.ForeColor = Color.FromArgb(231, 76, 60);
+                        return;
+                    }
+
                     using (var stream = new FileStream(trimmedPath, FileMode.Open, FileAccess.Read, FileShare.Read))
                     {
                         using (var tempImg = Image.FromStream(stream))
                         {
                             picLogoPreview.Image?.Dispose();
                             picLogoPreview.Image = new Bitmap(tempImg);
-                            lblLogoInfo.Text = $"✓ Logo Yüklendi: {tempImg.Width} × {tempImg.Height} px  (En/Boy Oranı Korunuyor: {((double)tempImg.Width / tempImg.Height):F2})";
+                            
+                            double ratio = (double)tempImg.Width / tempImg.Height;
+                            string loadedFormat = LocalizationService.T("designer.labels.logo_loaded", "✓ Logo Yüklendi: {w} × {h} px  (En/Boy Oranı Korunuyor: {ratio})");
+                            lblLogoInfo.Text = loadedFormat.Replace("{w}", tempImg.Width.ToString())
+                                                            .Replace("{h}", tempImg.Height.ToString())
+                                                            .Replace("{ratio}", ratio.ToString("F2"));
                             lblLogoInfo.ForeColor = Color.FromArgb(46, 204, 113);
                             return;
                         }
@@ -101,12 +130,12 @@ namespace Nlk_Cheffie_Print.Views
             picLogoPreview.Image = null;
             if (string.IsNullOrWhiteSpace(trimmedPath))
             {
-                lblLogoInfo.Text = "Lütfen basılacak logo resim dosyasını (.png, .jpg) seçiniz.";
+                lblLogoInfo.Text = LocalizationService.T("designer.labels.logo_select_msg", "Lütfen basılacak logo resim dosyasını (.png, .jpg) seçiniz.");
                 lblLogoInfo.ForeColor = ThemeManager.ColorTextMuted;
             }
             else
             {
-                lblLogoInfo.Text = "⚠️ Dosya bulunamadı veya resim formatı geçersiz.";
+                lblLogoInfo.Text = LocalizationService.T("designer.labels.logo_not_found", "⚠️ Dosya bulunamadı veya resim formatı geçersiz.");
                 lblLogoInfo.ForeColor = Color.FromArgb(231, 76, 60);
             }
         }
@@ -134,6 +163,7 @@ namespace Nlk_Cheffie_Print.Views
             
             lblTokensTitle.Text = LocalizationService.T("designer.dialogs.add_var");
             btnBrowse.Text = LocalizationService.T("designer.dialogs.browse");
+            btnRemoveLogo.Text = LocalizationService.T("designer.dialogs.remove_logo", " Görseli Kaldır");
             
             btnSave.Text = LocalizationService.T("designer.dialogs.save");
             btnCancel.Text = LocalizationService.T("settings.cancel");
@@ -356,6 +386,7 @@ namespace Nlk_Cheffie_Print.Views
             lblContent.Visible = (t == "text" || t == "qrcode" || t == "barcode" || t == "logo");
             txtContent.Visible = lblContent.Visible;
             btnBrowse.Visible = (t == "logo");
+            btnRemoveLogo.Visible = (t == "logo");
             
             lblAlign.Visible = (t != "separator");
             cmbAlign.Visible = lblAlign.Visible;
@@ -471,12 +502,35 @@ namespace Nlk_Cheffie_Print.Views
             }
         }
 
+        private void btnRemoveLogo_Click(object sender, EventArgs e)
+        {
+            txtContent.Text = "";
+            UpdateLogoPreview("");
+        }
+
         private void btnSave_Click(object sender, EventArgs e)
         {
             // Save modified values to element
             if (_element.Type == "logo")
             {
-                _element.Path = txtContent.Text.Trim();
+                string path = txtContent.Text.Trim();
+                if (!string.IsNullOrEmpty(path) && File.Exists(path))
+                {
+                    var fileInfo = new FileInfo(path);
+                    if (fileInfo.Length > 2 * 1024 * 1024)
+                    {
+                        double sizeMb = (double)fileInfo.Length / (1024 * 1024);
+                        string errFormat = LocalizationService.T("designer.labels.logo_size_error", "⚠️ Dosya boyutu 2MB sınırını aşıyor ({size:F1} MB). Lütfen daha küçük bir resim seçiniz.");
+                        MessageBox.Show(
+                            errFormat.Replace("{size:F1}", sizeMb.ToString("F1")),
+                            LocalizationService.T("designer.dialogs.error_title", "Hata"),
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Warning
+                        );
+                        return;
+                    }
+                }
+                _element.Path = path;
             }
             else
             {

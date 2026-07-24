@@ -178,6 +178,35 @@ namespace Nlk_Cheffie_Print.Core.Workers
                         {
                             EscPosDriver.SendBitmapToWin32GDI(targetPrinter.Name, bmp);
                         }
+
+                        // Sound printer buzzer if enabled in settings
+                        if (ConfigManager.Current.App.EnablePrinterBuzzer)
+                        {
+                            byte[] buzzerBytes = ReceiptRenderer.GetBuzzerBytes();
+                            try
+                            {
+                                if (targetPrinter.Type.ToLower() == "usb" || targetPrinter.Type.ToLower() == "win32")
+                                {
+                                    EscPosDriver.SendRawToWin32(targetPrinter.Name, buzzerBytes);
+                                }
+                                else if (targetPrinter.Type.ToLower() == "ip" || targetPrinter.Type.ToLower() == "network")
+                                {
+                                    string ip = targetPrinter.Id;
+                                    int port = 9100;
+                                    if (ip.Contains(":"))
+                                    {
+                                        var parts = ip.Split(':');
+                                        ip = parts[0];
+                                        int.TryParse(parts[1], out port);
+                                    }
+                                    EscPosDriver.SendRawToIP(ip, port, buzzerBytes);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                AppendLog($"[WARNING] Failed to send buzzer command in GDI mode: {ex.Message}");
+                            }
+                        }
                     }
                     else
                     {

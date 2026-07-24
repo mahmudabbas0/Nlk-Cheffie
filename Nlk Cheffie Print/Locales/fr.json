@@ -210,7 +210,18 @@
     "powered_by": "Powered by Cheffie POS",
     "yes": "Oui",
     "no": "Non",
+    "labels": {
+      "logo_path": "Chemin du fichier logo:",
+      "logo_size": "Taille du logo:",
+      "content": "Contenu:",
+      "size": "Taille:",
+      "logo_loaded": "✓ Logo chargé: {w} × {h} px  (Ratio d'aspect conservé: {ratio})",
+      "logo_select_msg": "Veuillez sélectionner un fichier image de logo (.png, .jpg)",
+      "logo_not_found": "⚠️ Fichier introuvable ou format d'image non valide.",
+      "logo_size_error": "⚠️ La taille du fichier dépasse 2Mo ({size:F1} Mo). Veuillez choisir une image plus petite."
+    },
     "dialogs": {
+      "remove_logo": " Supprimer le logo",
       "add_title": "Ajouter un nouvel élément",
       "edit_title": "Modifier l'élément",
       "basic_items": "Éléments de base",

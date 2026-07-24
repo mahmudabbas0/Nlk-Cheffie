@@ -45,9 +45,10 @@ namespace Nlk_Cheffie_Print.Core.Printer
 
             // Smart migration / auto-fix:
             bool modified = false;
-            if (template.Header != null)
+            Action<List<TemplateElement>?> migrateSection = (section) =>
             {
-                foreach (var el in template.Header)
+                if (section == null) return;
+                foreach (var el in section)
                 {
                     if (el.Content == "{restoran_adres}")
                     {
@@ -59,8 +60,18 @@ namespace Nlk_Cheffie_Print.Core.Printer
                         el.Content = "{L_tel}: {restoran_telefon}";
                         modified = true;
                     }
+                    else if (el.Content != null && el.Content.Contains("{genel_toplam}"))
+                    {
+                        el.Content = el.Content.Replace("{genel_toplam}", "{toplam_tutar}");
+                        modified = true;
+                    }
                 }
-            }
+            };
+
+            migrateSection(template.Header);
+            migrateSection(template.Body);
+            migrateSection(template.Footer);
+
             if (modified)
             {
                 Save(role, template);

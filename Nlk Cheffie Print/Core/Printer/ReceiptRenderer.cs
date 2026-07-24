@@ -108,49 +108,36 @@ namespace Nlk_Cheffie_Print.Core.Printer
                 else if (el.Type == "logo")
                 {
                     string path = el.Path;
-                    if (!string.IsNullOrEmpty(path) && File.Exists(path))
+                    var img = GetOptimizedLogo(path);
+                    if (img != null)
                     {
                         try
                         {
-                            using (var img = Image.FromFile(path))
+                            var (w, h) = GetLogoDimensions(img, el.Size, 384);
+                            
+                            using (var bmp = new Bitmap(w, h))
                             {
-                                int maxW = 160;
-                                string sz = (el.Size ?? "").ToLowerInvariant();
-                                if (sz == "1.5x" || sz == "medium" || sz == "orta") maxW = 220;
-                                else if (sz == "2x" || sz == "large" || sz == "buyuk" || sz == "büyük") maxW = 280;
-                                else if (sz == "3x" || sz == "xlarge" || sz == "cok_buyuk" || sz == "çok büyük") maxW = 340;
-
-                                int w = Math.Min(img.Width, maxW);
-                                double aspect = (double)img.Width / img.Height;
-                                int h = (int)(w / aspect);
-                                
-                                using (var bmp = new Bitmap(w, h))
+                                using (var g = Graphics.FromImage(bmp))
                                 {
-                                    using (var g = Graphics.FromImage(bmp))
-                                    {
-                                        g.Clear(Color.White);
-                                        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                                        g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
-                                        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
-                                        g.DrawImage(img, 0, 0, w, h);
-                                    }
-                                    
-                                    // Align for the logo image
-                                    byte alignByte = (el.Align ?? "").ToLower() == "left" ? (byte)0 : ((el.Align ?? "").ToLower() == "right" ? (byte)2 : (byte)1);
-                                    writer.Write(new byte[] { 0x1B, 0x61, alignByte });
-                                    
-                                    // Render bitmap to ESC/POS raster graphic bytes without page initialization/cutting
-                                    byte[] logoBytes = RenderBitmapToEscPosBytes(bmp);
-                                    writer.Write(logoBytes);
-                                    
-                                    // Reset alignment to default Left
-                                    writer.Write(new byte[] { 0x1B, 0x61, 0 });
+                                    g.Clear(Color.White);
+                                    g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                                    g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                                    g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                                    g.DrawImage(img, 0, 0, w, h);
                                 }
+                                
+                                byte alignByte = (el.Align ?? "").ToLower() == "left" ? (byte)0 : ((el.Align ?? "").ToLower() == "right" ? (byte)2 : (byte)1);
+                                writer.Write(new byte[] { 0x1B, 0x61, alignByte });
+                                
+                                byte[] logoBytes = RenderBitmapToEscPosBytes(bmp);
+                                writer.Write(logoBytes);
+                                
+                                writer.Write(new byte[] { 0x1B, 0x61, 0 });
                             }
                         }
                         catch
                         {
-                            WriteTextEscPos(writer, "[LOGO]\n", el.Align ?? "center", "A", "1x");
+                            // ignore error
                         }
                     }
                     else
@@ -383,29 +370,11 @@ namespace Nlk_Cheffie_Print.Core.Printer
             if (el.Type == "logo")
             {
                 string path = el.Path;
-                if (!string.IsNullOrEmpty(path) && File.Exists(path))
+                var img = GetOptimizedLogo(path);
+                if (img != null)
                 {
-                    try
-                    {
-                        using (var img = Image.FromFile(path))
-                        {
-                            int maxW = 120;
-                            string sz = (el.Size ?? "").ToLowerInvariant();
-                            if (sz == "1.5x" || sz == "medium" || sz == "orta") maxW = 160;
-                            else if (sz == "2x" || sz == "large" || sz == "buyuk" || sz == "büyük") maxW = 200;
-                            else if (sz == "3x" || sz == "xlarge" || sz == "cok_buyuk" || sz == "çok büyük") maxW = 260;
-
-                            int w = Math.Min(img.Width, maxW);
-                            w = Math.Min(w, usableWidth);
-                            double aspect = (double)img.Width / img.Height;
-                            int h = (int)(w / aspect);
-                            return yOffset + h + 10;
-                        }
-                    }
-                    catch
-                    {
-                        return yOffset + 50;
-                    }
+                    var (w, h) = GetLogoDimensions(img, el.Size, usableWidth);
+                    return yOffset + h + 10;
                 }
                 return yOffset + 50;
             }
@@ -421,14 +390,15 @@ namespace Nlk_Cheffie_Print.Core.Printer
                 {
                     var jsonItems = itemsProp.EnumerateArray().ToList();
                     double orderSubtotal = GetOrderSubtotal(data);
+                    int itemLineH = (int)Math.Ceiling(g.MeasureString("Ag", fnNormal).Height) + 4;
                     for (int itemIndex = 0; itemIndex < jsonItems.Count; itemIndex++)
                     {
                         var item = jsonItems[itemIndex];
-                        yOffset += 18; // main item row
+                        yOffset += itemLineH; // main item row
                         if (el.ShowCustomizations && ParseItemExtras(item, data, itemIndex, jsonItems.Count, orderSubtotal).Count > 0)
-                            yOffset += 16;
+                            yOffset += itemLineH;
                         if (el.ShowNotes && item.TryGetProperty("notes", out var notes) && !string.IsNullOrEmpty(notes.GetString()))
-                            yOffset += 16;
+                            yOffset += itemLineH;
                     }
                 }
                 return yOffset;
@@ -501,41 +471,29 @@ namespace Nlk_Cheffie_Print.Core.Printer
             if (el.Type == "logo")
             {
                 string path = el.Path;
-                if (!string.IsNullOrEmpty(path) && File.Exists(path))
+                var img = GetOptimizedLogo(path);
+                if (img != null)
                 {
                     try
                     {
-                        using (var img = Image.FromFile(path))
-                        {
-                            int maxW = 120;
-                            string sz = (el.Size ?? "").ToLowerInvariant();
-                            if (sz == "1.5x" || sz == "medium" || sz == "orta") maxW = 160;
-                            else if (sz == "2x" || sz == "large" || sz == "buyuk" || sz == "büyük") maxW = 200;
-                            else if (sz == "3x" || sz == "xlarge" || sz == "cok_buyuk" || sz == "çok büyük") maxW = 260;
+                        var (w, h) = GetLogoDimensions(img, el.Size, usableWidth);
+                        int x = GetAlignedX(el.Align, w, margin, usableWidth);
 
-                            int w = Math.Min(img.Width, maxW);
-                            w = Math.Min(w, usableWidth);
-                            double aspect = (double)img.Width / img.Height;
-                            int h = (int)(w / aspect);
+                        var oldInterpolation = g.InterpolationMode;
+                        var oldPixelOffset = g.PixelOffsetMode;
+                        var oldSmoothing = g.SmoothingMode;
 
-                            int x = GetAlignedX(el.Align, w, margin, usableWidth);
+                        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                        g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
 
-                            var oldInterpolation = g.InterpolationMode;
-                            var oldPixelOffset = g.PixelOffsetMode;
-                            var oldSmoothing = g.SmoothingMode;
+                        g.DrawImage(img, x, yOffset, w, h);
 
-                            g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                            g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
-                            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                        g.InterpolationMode = oldInterpolation;
+                        g.PixelOffsetMode = oldPixelOffset;
+                        g.SmoothingMode = oldSmoothing;
 
-                            g.DrawImage(img, x, yOffset, w, h);
-
-                            g.InterpolationMode = oldInterpolation;
-                            g.PixelOffsetMode = oldPixelOffset;
-                            g.SmoothingMode = oldSmoothing;
-
-                            return yOffset + h + 10;
-                        }
+                        return yOffset + h + 10;
                     }
                     catch
                     {
@@ -572,6 +530,8 @@ namespace Nlk_Cheffie_Print.Core.Printer
                 {
                     var jsonItems = itemsProp.EnumerateArray().ToList();
                     double orderSubtotal = GetOrderSubtotal(data);
+                    int itemLineH = (int)Math.Ceiling(g.MeasureString("Ag", fnNormal).Height) + 4;
+
                     for (int itemIndex = 0; itemIndex < jsonItems.Count; itemIndex++)
                     {
                         var item = jsonItems[itemIndex];
@@ -605,13 +565,13 @@ namespace Nlk_Cheffie_Print.Core.Printer
                             g.DrawString(priceText, fnNormal, brush, x, yOffset);
                         }
 
-                        yOffset += 18;
+                        yOffset += itemLineH;
 
                         // Customizations
                         if (el.ShowCustomizations && extras.Count > 0)
                         {
                             g.DrawString($" - Extra: {string.Join(", ", extras)}", fnNormal, Brushes.Gray, margin + 15, yOffset);
-                            yOffset += 16;
+                            yOffset += itemLineH;
                         }
 
                         // Notes
@@ -621,7 +581,7 @@ namespace Nlk_Cheffie_Print.Core.Printer
                             if (!string.IsNullOrEmpty(note))
                             {
                                 g.DrawString($" - Not: {note}", fnNormal, Brushes.Gray, margin + 15, yOffset);
-                                yOffset += 16;
+                                yOffset += itemLineH;
                             }
                         }
                     }
@@ -834,6 +794,9 @@ namespace Nlk_Cheffie_Print.Core.Printer
                 if (string.IsNullOrEmpty(totalVal)) totalVal = GetStr(slip, "total", "0.00");
             }
             ctx["toplam_tutar"] = totalVal;
+            ctx["genel_toplam"] = totalVal;
+            ctx["grand_total"] = totalVal;
+            ctx["total"] = totalVal;
 
             ctx["musteri_adi"] = ord.ValueKind == JsonValueKind.Object ? GetStr(ord, "customer_name", "") : GetStr(slip, "customer_name", "");
             ctx["musteri_telefon"] = ord.ValueKind == JsonValueKind.Object ? GetStr(ord, "customer_phone", "") : GetStr(slip, "customer_phone", "");
@@ -1226,6 +1189,10 @@ namespace Nlk_Cheffie_Print.Core.Printer
             }
 
             writer.Write(new byte[] { 0x0A, 0x0A, 0x0A, 0x1D, 0x56, 0x41, 0x03 });
+            if (ConfigManager.Current.App.EnablePrinterBuzzer)
+            {
+                writer.Write(GetBuzzerBytes());
+            }
             return stream.ToArray();
         }
 
@@ -1297,6 +1264,84 @@ namespace Nlk_Cheffie_Print.Core.Printer
                 }
             }
             return bmp;
+        }
+
+        public static (int Width, int Height) GetLogoDimensions(Image img, string? sizeSetting, int usableWidth)
+        {
+            if (img == null || img.Width <= 0 || img.Height <= 0) return (120, 60);
+
+            string sz = (sizeSetting ?? "").ToLowerInvariant();
+            double scaleRatio = sz switch
+            {
+                "1.5x" or "medium" or "orta" => 0.55,
+                "2x" or "large" or "buyuk" or "büyük" => 0.75,
+                "3x" or "xlarge" or "extra large" or "cok_buyuk" or "çok büyük" => 0.95,
+                _ => 0.38
+            };
+
+            int w = (int)(usableWidth * scaleRatio);
+            if (w < 40) w = 40;
+            if (w > usableWidth) w = usableWidth;
+
+            double aspect = (double)img.Width / img.Height;
+            int h = (int)(w / aspect);
+            if (h < 10) h = 10;
+
+            return (w, h);
+        }
+
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (DateTime LastWrite, Bitmap Thumb)> _logoCache = new();
+
+        public static Bitmap? GetOptimizedLogo(string path, int maxDimension = 600)
+        {
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return null;
+
+            try
+            {
+                var fileInfo = new FileInfo(path);
+                if (fileInfo.Length > 2 * 1024 * 1024) return null;
+
+                DateTime lastMod = fileInfo.LastWriteTimeUtc;
+                if (_logoCache.TryGetValue(path, out var cached) && cached.LastWrite == lastMod)
+                {
+                    return cached.Thumb;
+                }
+
+                using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+                using (var original = Image.FromStream(stream))
+                {
+                    int w = original.Width;
+                    int h = original.Height;
+
+                    if (w > maxDimension || h > maxDimension)
+                    {
+                        double scale = Math.Min((double)maxDimension / w, (double)maxDimension / h);
+                        w = Math.Max(1, (int)(w * scale));
+                        h = Math.Max(1, (int)(h * scale));
+                    }
+
+                    var thumb = new Bitmap(w, h);
+                    using (var g = Graphics.FromImage(thumb))
+                    {
+                        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                        g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                        g.DrawImage(original, 0, 0, w, h);
+                    }
+
+                    if (cached.Thumb != null)
+                    {
+                        try { cached.Thumb.Dispose(); } catch { }
+                    }
+
+                    _logoCache[path] = (lastMod, thumb);
+                    return thumb;
+                }
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }

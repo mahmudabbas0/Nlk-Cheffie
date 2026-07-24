@@ -213,7 +213,18 @@
     "powered_by": "Powered by Cheffie POS",
     "yes": "Evet",
     "no": "Hayır",
+    "labels": {
+      "logo_path": "Logo Dosya Yolu:",
+      "logo_size": "Logo Boyutu:",
+      "content": "İçerik:",
+      "size": "Boyut:",
+      "logo_loaded": "✓ Logo Yüklendi: {w} × {h} px  (En/Boy Oranı Korunuyor: {ratio})",
+      "logo_select_msg": "Lütfen basılacak logo resim dosyasını (.png, .jpg) seçiniz.",
+      "logo_not_found": "⚠️ Dosya bulunamadı veya resim formatı geçersiz.",
+      "logo_size_error": "⚠️ Dosya boyutu 2MB sınırını aşıyor ({size:F1} MB). Lütfen daha küçük bir resim seçiniz."
+    },
     "dialogs": {
+      "remove_logo": " Görseli Kaldır",
       "add_title": "Yeni Öğe Ekle",
       "edit_title": "Öğeyi Düzenle",
       "basic_items": "Temel Öğeler",

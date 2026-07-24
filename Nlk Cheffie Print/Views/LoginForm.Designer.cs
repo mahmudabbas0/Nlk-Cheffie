@@ -60,25 +60,25 @@ namespace Nlk_Cheffie_Print.Views
             // 
             // lblSubtitle
             // 
-            this.lblSubtitle.AutoSize = true;
-            this.lblSubtitle.Font = new System.Drawing.Font("Segoe UI", 9.5f, System.Drawing.FontStyle.Bold);
+            this.lblSubtitle.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.lblSubtitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(142)))), ((int)(((byte)(142)))), ((int)(((byte)(147)))));
-            this.lblSubtitle.Location = new System.Drawing.Point(180, 20);
+            this.lblSubtitle.Location = new System.Drawing.Point(50, 22);
             this.lblSubtitle.Name = "lblSubtitle";
-            this.lblSubtitle.Size = new System.Drawing.Size(140, 17);
+            this.lblSubtitle.Size = new System.Drawing.Size(400, 18);
             this.lblSubtitle.TabIndex = 0;
             this.lblSubtitle.Text = "CHEFFIE POS BRIDGE";
+            this.lblSubtitle.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // lblTitle
             // 
-            this.lblTitle.AutoSize = true;
-            this.lblTitle.Font = new System.Drawing.Font("Segoe UI", 14F, System.Drawing.FontStyle.Bold);
+            this.lblTitle.Font = new System.Drawing.Font("Segoe UI", 15F, System.Drawing.FontStyle.Bold);
             this.lblTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(152)))), ((int)(((byte)(0)))));
-            this.lblTitle.Location = new System.Drawing.Point(170, 45);
+            this.lblTitle.Location = new System.Drawing.Point(50, 44);
             this.lblTitle.Name = "lblTitle";
-            this.lblTitle.Size = new System.Drawing.Size(161, 25);
+            this.lblTitle.Size = new System.Drawing.Size(400, 30);
             this.lblTitle.TabIndex = 1;
             this.lblTitle.Text = "Cloud Connection";
+            this.lblTitle.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // btnBrowserLogin
             // 
@@ -87,7 +87,7 @@ namespace Nlk_Cheffie_Print.Views
             this.btnBrowserLogin.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnBrowserLogin.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.btnBrowserLogin.ForeColor = System.Drawing.Color.White;
-            this.btnBrowserLogin.Location = new System.Drawing.Point(50, 100);
+            this.btnBrowserLogin.Location = new System.Drawing.Point(50, 95);
             this.btnBrowserLogin.Name = "btnBrowserLogin";
             this.btnBrowserLogin.Size = new System.Drawing.Size(400, 45);
             this.btnBrowserLogin.TabIndex = 2;
@@ -98,20 +98,21 @@ namespace Nlk_Cheffie_Print.Views
             // 
             // lblOrManual
             // 
-            this.lblOrManual.AutoSize = true;
+            this.lblOrManual.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.lblOrManual.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(142)))), ((int)(((byte)(142)))), ((int)(((byte)(147)))));
-            this.lblOrManual.Location = new System.Drawing.Point(180, 165);
+            this.lblOrManual.Location = new System.Drawing.Point(50, 155);
             this.lblOrManual.Name = "lblOrManual";
-            this.lblOrManual.Size = new System.Drawing.Size(140, 15);
+            this.lblOrManual.Size = new System.Drawing.Size(400, 20);
             this.lblOrManual.TabIndex = 3;
             this.lblOrManual.Text = "or enter token manually";
+            this.lblOrManual.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // lblTokenLabel
             // 
             this.lblTokenLabel.AutoSize = true;
             this.lblTokenLabel.Font = new System.Drawing.Font("Segoe UI", 8.5f, System.Drawing.FontStyle.Bold);
             this.lblTokenLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(142)))), ((int)(((byte)(142)))), ((int)(((byte)(147)))));
-            this.lblTokenLabel.Location = new System.Drawing.Point(50, 205);
+            this.lblTokenLabel.Location = new System.Drawing.Point(50, 195);
             this.lblTokenLabel.Name = "lblTokenLabel";
             this.lblTokenLabel.Size = new System.Drawing.Size(88, 15);
             this.lblTokenLabel.TabIndex = 4;
@@ -122,7 +123,7 @@ namespace Nlk_Cheffie_Print.Views
             this.pnlTokenWrapper.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(28)))), ((int)(((byte)(28)))), ((int)(((byte)(30)))));
             this.pnlTokenWrapper.Controls.Add(this.txtToken);
             this.pnlTokenWrapper.Controls.Add(this.btnTogglePassword);
-            this.pnlTokenWrapper.Location = new System.Drawing.Point(50, 225);
+            this.pnlTokenWrapper.Location = new System.Drawing.Point(50, 218);
             this.pnlTokenWrapper.Name = "pnlTokenWrapper";
             this.pnlTokenWrapper.Size = new System.Drawing.Size(400, 45);
             this.pnlTokenWrapper.TabIndex = 5;
@@ -133,10 +134,10 @@ namespace Nlk_Cheffie_Print.Views
             this.txtToken.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txtToken.Font = new System.Drawing.Font("Segoe UI", 11F);
             this.txtToken.ForeColor = System.Drawing.Color.White;
-            this.txtToken.Location = new System.Drawing.Point(12, 12);
+            this.txtToken.Location = new System.Drawing.Point(12, 13);
             this.txtToken.Name = "txtToken";
             this.txtToken.PasswordChar = '●';
-            this.txtToken.Size = new System.Drawing.Size(340, 20);
+            this.txtToken.Size = new System.Drawing.Size(335, 20);
             this.txtToken.TabIndex = 0;
             // 
             // btnTogglePassword
