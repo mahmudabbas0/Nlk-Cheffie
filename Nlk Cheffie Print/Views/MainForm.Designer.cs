@@ -112,7 +112,7 @@ namespace Nlk_Cheffie_Print.Views
             this.lblBrand.Size = new System.Drawing.Size(150, 19);
             this.lblBrand.TabIndex = 0;
             this.lblBrand.Tag = "Title";
-            this.lblBrand.Text = "CHEFFIE POS BRIDGE";
+            this.lblBrand.Text = "Nlk Cheffie Print";
             // 
             // pnlTopBar
             // 

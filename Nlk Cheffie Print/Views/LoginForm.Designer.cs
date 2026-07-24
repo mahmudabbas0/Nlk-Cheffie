@@ -66,7 +66,7 @@ namespace Nlk_Cheffie_Print.Views
             this.lblSubtitle.Name = "lblSubtitle";
             this.lblSubtitle.Size = new System.Drawing.Size(400, 18);
             this.lblSubtitle.TabIndex = 0;
-            this.lblSubtitle.Text = "CHEFFIE POS BRIDGE";
+            this.lblSubtitle.Text = "Nlk Cheffie Print";
             this.lblSubtitle.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // lblTitle

@@ -367,8 +367,8 @@ namespace Nlk_Cheffie_Print.Views
             this.RightToLeft = isRtl ? RightToLeft.Yes : RightToLeft.No;
             this.RightToLeftLayout = isRtl;
 
-            this.Text = LocalizationService.T("tray.tooltip");
-            lblBrand.Text = "CHEFFIE POS BRIDGE";
+            this.Text = LocalizationService.T("tray.tooltip", "Nlk Cheffie Print");
+            lblBrand.Text = "Nlk Cheffie Print";
             
             btnNavOrders.Text = " " + LocalizationService.T("tabs.orders");
             btnNavPrinters.Text = " " + LocalizationService.T("tabs.printers");
@@ -509,7 +509,7 @@ namespace Nlk_Cheffie_Print.Views
         private void InitializeTrayIcon()
         {
             _notifyIcon = new NotifyIcon();
-            _notifyIcon.Text = LocalizationService.T("tray.tooltip", "Cheffie POS Bridge");
+            _notifyIcon.Text = LocalizationService.T("tray.tooltip", "Nlk Cheffie Print");
             _notifyIcon.Visible = true;
             _notifyIcon.DoubleClick += (s, e) => ShowMainForm();
 
@@ -608,7 +608,7 @@ namespace Nlk_Cheffie_Print.Views
         {
             if (_notifyIcon == null || _trayMenu == null) return;
 
-            _notifyIcon.Text = LocalizationService.T("tray.tooltip", "Cheffie POS Bridge");
+            _notifyIcon.Text = LocalizationService.T("tray.tooltip", "Nlk Cheffie Print");
 
             // Re-fetch translations for all menu items
             _trayMenu.Items[2].Text = LocalizationService.T("tray.show", "Göster");
