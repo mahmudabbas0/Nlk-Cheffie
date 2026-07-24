@@ -267,12 +267,6 @@ namespace Nlk_Cheffie_Print.Views
 
         private void Canvas_Resize(object? sender, EventArgs e)
         {
-            try
-            {
-                System.IO.File.AppendAllText("debug_layout.log", 
-                    $"Resize: pnlCanvas.ClientSize={pnlCanvas.ClientSize}, scrollBar.Visible={scrollBar.Visible}, pnlDetails.Visible={pnlDetails.Visible}\n");
-            }
-            catch {}
 
             int availableWidth = pnlCanvas.ClientSize.Width - 40 - (scrollBar.Visible ? scrollBar.Width : 0);
             int targetWidth = availableWidth - flowDetails.Padding.Left - flowDetails.Padding.Right;

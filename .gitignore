@@ -18,3 +18,7 @@
 # Local config containing secrets/tokens
 config.json
 **/config.json
+
+# Log files
+*.log
+**/*.log
